@@ -8,7 +8,15 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.webkit.*
+import android.webkit.CookieManager
+import android.webkit.PermissionRequest
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -97,12 +105,20 @@ class MainActivity : AppCompatActivity() {
                 progressBar.setProgress(newProgress)
                 if (newProgress >= 75) hideOverlay()
             }
-            override fun onPermissionRequest(request: PermissionRequest) { request.grant(request.resources) }
-            override fun onShowFileChooser(webView: WebView, filePathCallback: ValueCallback<Array<Uri>>, fileChooserParams: FileChooserParams): Boolean {
+            override fun onPermissionRequest(request: PermissionRequest) {
+                request.grant(request.resources)
+            }
+            override fun onShowFileChooser(
+                webView: WebView,
+                filePathCallback: ValueCallback<Array<Uri>>,
+                fileChooserParams: WebChromeClient.FileChooserParams
+            ): Boolean {
                 try {
                     startActivityForResult(fileChooserParams.createIntent(), FILE_CHOOSER_REQUEST)
                     fileChooserCallbackRef = filePathCallback
-                } catch (e: Exception) { filePathCallback.onReceiveValue(null) }
+                } catch (e: Exception) {
+                    filePathCallback.onReceiveValue(null)
+                }
                 return true
             }
         }
@@ -156,10 +172,17 @@ class MainActivity : AppCompatActivity() {
     private var backPressedTime = 0L
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (webView.canGoBack()) { webView.goBack() } else {
+        if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
             val now = System.currentTimeMillis()
-            if (now - backPressedTime < 2000) { @Suppress("DEPRECATION") super.onBackPressed() }
-            else { backPressedTime = now; android.widget.Toast.makeText(this, "再按一次退出", android.widget.Toast.LENGTH_SHORT).show() }
+            if (now - backPressedTime < 2000) {
+                @Suppress("DEPRECATION")
+                super.onBackPressed()
+            } else {
+                backPressedTime = now
+                android.widget.Toast.makeText(this, "再按一次退出", android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -172,7 +195,9 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FILE_CHOOSER_REQUEST) {
             fileChooserCallbackRef?.onReceiveValue(
-                if (resultCode == RESULT_OK && data != null) FileChooserParams.parseResult(resultCode, data) else null
+                if (resultCode == RESULT_OK && data != null)
+                    WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+                else null
             )
             fileChooserCallbackRef = null
         }
