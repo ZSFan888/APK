@@ -1,0 +1,103 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: "Target URL"
+        required: true
+      app_name:
+        description: "App Name"
+        required: true
+      package_name:
+        description: "Package Name"
+        required: true
+      version_name:
+        description: "Version Name"
+        required: true
+        default: "1.0.0"
+      icon_url:
+        description: "Icon Image URL"
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - uses: android-actions/setup-android@v3
+
+      - run: pip install Pillow
+
+      - name: Inject parameters
+        run: |
+          sed -i 's|{{APP_URL}}|${{ github.event.inputs.app_url }}|g' \
+            app/src/main/java/com/webviewapp/MainActivity.kt
+
+          PKG="${{ github.event.inputs.package_name }}"
+          sed -i "s|{{APP_PACKAGE}}|${PKG}|g" \
+            app/src/main/AndroidManifest.xml app/build.gradle
+
+          NAME="${{ github.event.inputs.app_name }}"
+          sed -i "s|{{APP_NAME}}|${NAME}|g" \
+            app/src/main/res/values/strings.xml \
+            app/src/main/AndroidManifest.xml
+
+          VER="${{ github.event.inputs.version_name }}"
+          VC=$(echo "$VER" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
+          sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
+          sed -i "s|{{VERSION_CODE}}|${VC}|g"  app/build.gradle
+
+          PKG_PATH=$(echo "$PKG" | tr '.' '/')
+          mkdir -p "app/src/main/java/${PKG_PATH}"
+          sed -i "s|package com.webviewapp|package ${PKG}|g" \
+            app/src/main/java/com/webviewapp/*.kt
+          mv app/src/main/java/com/webviewapp/*.kt \
+            "app/src/main/java/${PKG_PATH}/"
+
+      - name: Process icon
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, os
+          from PIL import Image, ImageDraw
+          url = "${{ github.event.inputs.icon_url }}"
+          urllib.request.urlretrieve(url, "/tmp/icon.png")
+          img = Image.open("/tmp/icon.png").convert("RGBA")
+          for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+              out  = img.resize((size, size), Image.LANCZOS)
+              base = f"app/src/main/res/mipmap-{density}"
+              os.makedirs(base, exist_ok=True)
+              out.save(f"{base}/ic_launcher.png")
+              mask = Image.new("RGBA", (size, size), (0,0,0,0))
+              ImageDraw.Draw(mask).ellipse((0,0,size,size), fill=(255,255,255,255))
+              result = Image.new("RGBA", (size, size), (0,0,0,0))
+              result.paste(out, mask=mask)
+              result.save(f"{base}/ic_launcher_round.png")
+          PYEOF
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore.jks
+
+      - name: Build APK
+        env:
+          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.app_name }}_${{ github.event.inputs.version_name }}
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
