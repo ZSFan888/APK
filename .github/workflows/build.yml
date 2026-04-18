@@ -1,6 +1,23 @@
 name: Build APK
 on:
   workflow_dispatch:
+    inputs:
+      app_url:
+        description: Target URL
+        required: true
+      app_name:
+        description: App Name
+        required: true
+      package_name:
+        description: Package Name
+        required: true
+      version_name:
+        description: Version Name
+        required: true
+        default: 1.0.0
+      icon_url:
+        description: Icon Image URL
+        required: true
 jobs:
   build:
     runs-on: ubuntu-latest
