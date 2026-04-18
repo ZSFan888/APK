@@ -1,5 +1,4 @@
 name: Build APK
-# updated: 2026-04-19
 
 on:
   workflow_dispatch:
@@ -90,7 +89,6 @@ except Exception as e:
     raw = None
 
 if raw:
-    # SVG
     if b"<svg" in raw[:512] or "svg" in content_type.lower():
         try:
             import cairosvg
@@ -99,22 +97,13 @@ if raw:
             print("SVG OK")
         except Exception as e:
             print(f"SVG failed: {e}")
-
-    # 通用格式 PNG/JPG/WEBP/GIF/BMP/ICO 等
     if img is None:
         try:
-            img = Image.open(io.BytesIO(raw))
-            # ICO 取最大尺寸
-            if hasattr(img, 'ico') or getattr(img, 'format', '') == 'ICO':
-                sizes = list(img.ico.sizes())
-                if sizes:
-                    img.size = max(sizes, key=lambda s: s[0])
-            img = img.convert("RGBA")
+            img = Image.open(io.BytesIO(raw)).convert("RGBA")
             print(f"Image OK: {img.format} {img.size}")
         except Exception as e:
             print(f"Image open failed: {e}")
 
-# 全部失败用默认纯色图标
 if img is None:
     print("Using default icon")
     img = Image.new("RGBA", (192, 192), (66, 133, 244, 255))
@@ -134,18 +123,15 @@ for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxh
 print("Icon ALL OK")
 PYEOF
 
-
       - name: Build unsigned APK
         run: gradle assembleRelease --no-daemon
 
       - name: Find and sign APK
         run: |
-          echo "=== APK files found ==="
           find app/build/outputs/apk -name "*.apk" | tee /tmp/apk_list.txt
           UNSIGNED=$(cat /tmp/apk_list.txt | head -1)
           echo "Using: $UNSIGNED"
 
-          # Setup keystore
           KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 --decode > /tmp/release.keystore
@@ -153,7 +139,6 @@ PYEOF
             KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             KEY_PASS="${{ secrets.KEY_PASSWORD }}"
           else
-            echo "Generating debug keystore..."
             keytool -genkey -v \
               -keystore /tmp/release.keystore \
               -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 \
@@ -164,13 +149,9 @@ PYEOF
             KEY_PASS="android"
           fi
 
-          keytool -list -keystore /tmp/release.keystore -storepass "$KS_PASS" -noprompt
-          echo "Keystore OK"
-
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
           ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign"
           APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
-          echo "Build tools: $BUILD_TOOLS"
 
           $ZIPALIGN -v -p 4 "$UNSIGNED" /tmp/aligned.apk
           $APKSIGNER sign \
@@ -181,7 +162,6 @@ PYEOF
             --out /tmp/signed.apk \
             /tmp/aligned.apk
           $APKSIGNER verify /tmp/signed.apk
-          echo "Signing OK"
 
           SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
