@@ -12,18 +12,10 @@ android {
         versionCode {{VERSION_CODE}}
         versionName "{{VERSION_NAME}}"
     }
-    signingConfigs {
-        release {
-            storeFile     file("${rootDir}/app/" + (System.getenv("KEYSTORE_PATH") ?: "keystore.jks"))
-            storePassword (System.getenv("KEYSTORE_PASSWORD") ?: "android")
-            keyAlias      (System.getenv("KEY_ALIAS")         ?: "debugkey")
-            keyPassword   (System.getenv("KEY_PASSWORD")      ?: "android")
-        }
-    }
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
+            // 不在 Gradle 里配置签名，由 workflow 的 apksigner 负责
         }
     }
     compileOptions {
