@@ -3,12 +3,14 @@ package com.webviewapp
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -50,8 +52,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
         val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
+        controller.hide(WindowInsetsCompat.Type.navigationBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         setContentView(R.layout.activity_main)
@@ -85,6 +88,28 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 showOverlay()
+            }
+            override fun onPageFinished(view: WebView, url: String) {
+                view.evaluateJavascript("""
+                    (function() {
+                        var meta = document.querySelector('meta[name="theme-color"]');
+                        if (meta && meta.content) {
+                            NativeBridge.updateStatusBar(meta.content);
+                            return;
+                        }
+                        var el = document.elementFromPoint(window.innerWidth/2, 1);
+                        if (el) {
+                            var bg = window.getComputedStyle(el).backgroundColor;
+                            var m = bg.match(/rgba?\((\d+),(\d+),(\d+)/);
+                            if (m) {
+                                var hex = '#' + [m[1],m[2],m[3]].map(function(x){
+                                    return ('0'+parseInt(x).toString(16)).slice(-2);
+                                }).join('');
+                                NativeBridge.updateStatusBar(hex);
+                            }
+                        }
+                    })();
+                """.trimIndent(), null)
             }
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
@@ -126,6 +151,20 @@ class MainActivity : AppCompatActivity() {
         webView.setDownloadListener { url, _, _, _, _ ->
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
         }
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun updateStatusBar(colorHex: String) {
+                try {
+                    val color = Color.parseColor(colorHex)
+                    runOnUiThread {
+                        window.statusBarColor = color
+                        val brightness = (Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114) / 1000
+                        val ctrl = WindowInsetsControllerCompat(window, window.decorView)
+                        ctrl.isAppearanceLightStatusBars = brightness > 128
+                    }
+                } catch (e: Exception) { /* ignore invalid color */ }
+            }
+        }, "NativeBridge")
         webView.loadUrl(APP_URL)
     }
 
