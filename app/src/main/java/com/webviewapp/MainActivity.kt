@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        window.statusBarColor = Color.TRANSPARENT
         setContentView(R.layout.activity_main)
         webView     = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
