@@ -54,6 +54,7 @@ jobs:
           mkdir -p app/src/main/java/$PKG_PATH
           sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
           mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
+          sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
 
       - name: Process icon
         env:
