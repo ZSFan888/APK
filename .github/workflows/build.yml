@@ -49,10 +49,11 @@ jobs:
           VC=$(echo "$VER" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
           sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
           sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
-          PKG_PATH=$(echo "$PKG" | tr '.' '/')
-          mkdir -p "app/src/main/java/${PKG_PATH}"
-          sed -i "s|package com.webviewapp|package ${PKG}|g" app/src/main/java/com/webviewapp/*.kt
-          mv app/src/main/java/com/webviewapp/*.kt "app/src/main/java/${PKG_PATH}/"
+          PKG_PATH=$(echo $PKG | sed 's/\./\//g')
+          echo "PKG_PATH is: $PKG_PATH"
+          mkdir -p app/src/main/java/$PKG_PATH
+          sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
+          mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
 
       - name: Process icon
         env:
