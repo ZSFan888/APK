@@ -57,13 +57,13 @@ nav{
 .hero-stats{
   display:flex;justify-content:center;gap:32px;flex-wrap:wrap;
 }
-.stat{text-align:center}
-.stat-num{font-size:20px;font-weight:700;color:#111;letter-spacing:-0.03em}
-.stat-label{font-size:12px;color:#888;margin-top:2px}
+
+
+
 
 /* ── Main Content ── */
-.content{max-width:960px;margin:0 auto;padding:0 24px 80px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
-@media(max-width:680px){.content{grid-template-columns:1fr;gap:24px}}
+.content{max-width:520px;margin:0 auto;padding:0 24px 80px}
+
 
 /* ── Form Card ── */
 .card{
@@ -215,11 +215,7 @@ footer span{margin:0 8px;opacity:.4}
   </div>
   <h1>网页秒变<br><span>Android App</span></h1>
   <p>填写网址和基本信息，3 到 5 分钟自动生成可安装的 APK 文件。</p>
-  <div class="hero-stats">
-    <div class="stat"><div class="stat-num">3-5 min</div><div class="stat-label">平均出包时间</div></div>
-    <div class="stat"><div class="stat-num">Android 5+</div><div class="stat-label">兼容版本</div></div>
-    <div class="stat"><div class="stat-num">7 天</div><div class="stat-label">文件保留时间</div></div>
-  </div>
+
 </section>
 
 <div class="content">
@@ -298,29 +294,6 @@ footer span{margin:0 8px;opacity:.4}
     </div>
   </div>
 
-  <!-- 右：说明 -->
-  <div class="info-card">
-    <div class="steps-card">
-      <div class="steps-title">构建流程</div>
-      <div class="step-item"><div class="step-num">1</div><div class="step-text">提交表单，触发 GitHub Actions</div></div>
-      <div class="step-item"><div class="step-num">2</div><div class="step-text">注入参数、处理图标、替换包名</div></div>
-      <div class="step-item"><div class="step-num">3</div><div class="step-text">Gradle 编译，生成 APK</div></div>
-      <div class="step-item"><div class="step-num">4</div><div class="step-text">签名打包，上传 Artifact</div></div>
-    </div>
-
-    <div class="feature">
-      <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
-      <div><div class="feature-title">全屏 WebView 套壳</div><div class="feature-desc">沉浸式全屏显示，iOS 风格加载动画，状态栏自适应网页颜色</div></div>
-    </div>
-    <div class="feature">
-      <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-      <div><div class="feature-title">Release 签名</div><div class="feature-desc">自动用你的 Keystore 签名，可直接侧载安装，支持版本升级</div></div>
-    </div>
-    <div class="feature">
-      <div class="feature-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg></div>
-      <div><div class="feature-title">支持任意网址</div><div class="feature-desc">HTTP / HTTPS 均可，支持 Cookie 持久化、文件上传、摄像头权限</div></div>
-    </div>
-  </div>
 
 </div>
 
