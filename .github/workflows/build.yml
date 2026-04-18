@@ -95,16 +95,15 @@ jobs:
 
       - name: Build unsigned APK
         run: gradle assembleRelease --no-daemon
-        working-directory: ${{ github.workspace }}
 
-      - name: Sign APK
+      - name: Find and sign APK
         run: |
-          UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
-          # fallback: some gradle versions output app-release.apk even without signing
-          if [ ! -f "$UNSIGNED" ]; then
-            UNSIGNED="app/build/outputs/apk/release/app-release.apk"
-          fi
+          echo "=== APK files found ==="
+          find app/build/outputs/apk -name "*.apk" | tee /tmp/apk_list.txt
+          UNSIGNED=$(cat /tmp/apk_list.txt | head -1)
+          echo "Using: $UNSIGNED"
 
+          # Setup keystore
           KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 --decode > /tmp/release.keystore
@@ -112,7 +111,7 @@ jobs:
             KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             KEY_PASS="${{ secrets.KEY_PASSWORD }}"
           else
-            echo "No keystore — generating debug keystore"
+            echo "Generating debug keystore..."
             keytool -genkey -v \
               -keystore /tmp/release.keystore \
               -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 \
@@ -124,11 +123,12 @@ jobs:
           fi
 
           keytool -list -keystore /tmp/release.keystore -storepass "$KS_PASS" -noprompt
-          echo "Keystore verified"
+          echo "Keystore OK"
 
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
           ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign"
           APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
+          echo "Build tools: $BUILD_TOOLS"
 
           $ZIPALIGN -v -p 4 "$UNSIGNED" /tmp/aligned.apk
           $APKSIGNER sign \
@@ -141,8 +141,7 @@ jobs:
           $APKSIGNER verify /tmp/signed.apk
           echo "Signing OK"
 
-          SAFE="${{ github.event.inputs.app_name }}"
-          SAFE=$(echo "$SAFE" | tr ' ' '_')
+          SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
           cp /tmp/signed.apk "/tmp/${SAFE}_${VER}.apk"
           echo "APK_PATH=/tmp/${SAFE}_${VER}.apk" >> $GITHUB_ENV
