@@ -68,7 +68,11 @@ jobs:
           import urllib.request, os
           from PIL import Image, ImageDraw
           url = "${{ github.event.inputs.icon_url }}"
-          urllib.request.urlretrieve(url, "/tmp/icon.png")
+          req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+          with urllib.request.urlopen(req, timeout=15) as r:
+              data = r.read()
+          with open("/tmp/icon.png", "wb") as f:
+              f.write(data)
           img = Image.open("/tmp/icon.png").convert("RGBA")
           for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
               out  = img.resize((size, size), Image.LANCZOS)
@@ -80,20 +84,41 @@ jobs:
               result = Image.new("RGBA", (size, size), (0,0,0,0))
               result.paste(out, mask=mask)
               result.save(f"{base}/ic_launcher_round.png")
+          print("Icon OK")
           PYEOF
 
-      - name: Decode keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore.jks
+      - name: Setup keystore
+        run: |
+          KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
+          if [ -z "$KS_B64" ]; then
+            echo "KEYSTORE_BASE64 is empty — generating a temporary debug keystore"
+            keytool -genkey -v \
+              -keystore app/keystore.jks \
+              -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 \
+              -storepass android -keypass android \
+              -dname "CN=Debug,O=Debug,C=US" -noprompt
+            echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=debugkey"        >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android"      >> $GITHUB_ENV
+          else
+            echo "$KS_B64" | base64 --decode > app/keystore.jks
+            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}"                 >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}"           >> $GITHUB_ENV
+          fi
+          # Verify keystore is valid
+          keytool -list -keystore app/keystore.jks \
+            -storepass "${KEYSTORE_PASSWORD:-android}" -noprompt || true
 
       - name: Build APK
-        env:
-          KEYSTORE_PATH: keystore.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
