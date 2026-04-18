@@ -112,7 +112,7 @@ const json  = (d, s = 200) => new Response(JSON.stringify(d), {
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const cors  = (res, env) => {
   const h = new Headers(res.headers);
-  h.set('Access-Control-Allow-Origin',  env.ALLOWED_ORIGIN || '*');
+  h.set('Access-Control-Allow-Origin',  '*');
   h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   h.set('Access-Control-Allow-Headers', 'Content-Type');
   return new Response(res.body, { status: res.status, headers: h });
