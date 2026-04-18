@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
         overlay     = findViewById(R.id.overlay)
         spinner     = findViewById(R.id.spinner)
         loadingText = findViewById(R.id.loadingText)
+        showOverlay()
         setupWebView()
     }
 
