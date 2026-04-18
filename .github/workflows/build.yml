@@ -32,7 +32,13 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - uses: android-actions/setup-android@v3
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.2"
 
       - run: pip install Pillow
 
@@ -88,18 +94,17 @@ jobs:
           PYEOF
 
       - name: Build unsigned APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
-        # build.gradle release 不配置签名，直接出 unsigned APK
+        run: gradle assembleRelease --no-daemon
+        working-directory: ${{ github.workspace }}
 
       - name: Sign APK
         run: |
           UNSIGNED="app/build/outputs/apk/release/app-release-unsigned.apk"
-          SIGNED="/tmp/app-signed.apk"
-          ALIGNED="/tmp/app-aligned.apk"
+          # fallback: some gradle versions output app-release.apk even without signing
+          if [ ! -f "$UNSIGNED" ]; then
+            UNSIGNED="app/build/outputs/apk/release/app-release.apk"
+          fi
 
-          # 准备 keystore
           KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 --decode > /tmp/release.keystore
@@ -107,7 +112,7 @@ jobs:
             KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
             KEY_PASS="${{ secrets.KEY_PASSWORD }}"
           else
-            echo "No keystore secret — generating debug keystore"
+            echo "No keystore — generating debug keystore"
             keytool -genkey -v \
               -keystore /tmp/release.keystore \
               -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 \
@@ -118,33 +123,30 @@ jobs:
             KEY_PASS="android"
           fi
 
-          # 验证 keystore
           keytool -list -keystore /tmp/release.keystore -storepass "$KS_PASS" -noprompt
-          echo "Keystore OK"
+          echo "Keystore verified"
 
-          # zipalign + apksigner
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
           ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign"
           APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner"
 
-          $ZIPALIGN -v -p 4 "$UNSIGNED" "$ALIGNED"
+          $ZIPALIGN -v -p 4 "$UNSIGNED" /tmp/aligned.apk
           $APKSIGNER sign \
             --ks /tmp/release.keystore \
             --ks-pass "pass:$KS_PASS" \
             --ks-key-alias "$KEY_ALIAS" \
             --key-pass "pass:$KEY_PASS" \
-            --out "$SIGNED" \
-            "$ALIGNED"
-          $APKSIGNER verify "$SIGNED"
+            --out /tmp/signed.apk \
+            /tmp/aligned.apk
+          $APKSIGNER verify /tmp/signed.apk
           echo "Signing OK"
 
-          # 重命名
-          APP_NAME="${{ github.event.inputs.app_name }}"
+          SAFE="${{ github.event.inputs.app_name }}"
+          SAFE=$(echo "$SAFE" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
-          SAFE_NAME=$(echo "${APP_NAME}" | tr ' ' '_')
-          cp "$SIGNED" "/tmp/${SAFE_NAME}_${VER}.apk"
-          echo "APK_PATH=/tmp/${SAFE_NAME}_${VER}.apk" >> $GITHUB_ENV
-          echo "APK_NAME=${SAFE_NAME}_${VER}"           >> $GITHUB_ENV
+          cp /tmp/signed.apk "/tmp/${SAFE}_${VER}.apk"
+          echo "APK_PATH=/tmp/${SAFE}_${VER}.apk" >> $GITHUB_ENV
+          echo "APK_NAME=${SAFE}_${VER}"           >> $GITHUB_ENV
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
