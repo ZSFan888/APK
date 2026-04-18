@@ -70,28 +70,69 @@ jobs:
 
       - name: Process icon
         run: |
+          pip install Pillow cairosvg -q 2>/dev/null || pip install Pillow -q
           python3 << 'PYEOF'
-          import urllib.request, os
-          from PIL import Image, ImageDraw
-          url = "${{ github.event.inputs.icon_url }}"
-          req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-          with urllib.request.urlopen(req, timeout=15) as r:
-              data = r.read()
-          with open("/tmp/icon.png", "wb") as f:
-              f.write(data)
-          img = Image.open("/tmp/icon.png").convert("RGBA")
-          for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
-              out  = img.resize((size, size), Image.LANCZOS)
-              base = f"app/src/main/res/mipmap-{density}"
-              os.makedirs(base, exist_ok=True)
-              out.save(f"{base}/ic_launcher.png")
-              mask = Image.new("RGBA", (size, size), (0,0,0,0))
-              ImageDraw.Draw(mask).ellipse((0,0,size,size), fill=(255,255,255,255))
-              result = Image.new("RGBA", (size, size), (0,0,0,0))
-              result.paste(out, mask=mask)
-              result.save(f"{base}/ic_launcher_round.png")
-          print("Icon OK")
-          PYEOF
+import urllib.request, os, io
+from PIL import Image, ImageDraw
+
+url = "${{ github.event.inputs.icon_url }}"
+img = None
+
+try:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        raw = r.read()
+        content_type = r.headers.get("Content-Type", "")
+    print(f"Downloaded {len(raw)} bytes, type: {content_type}")
+except Exception as e:
+    print(f"Download failed: {e}")
+    raw = None
+
+if raw:
+    # SVG
+    if b"<svg" in raw[:512] or "svg" in content_type.lower():
+        try:
+            import cairosvg
+            png_data = cairosvg.svg2png(bytestring=raw, output_width=192, output_height=192)
+            img = Image.open(io.BytesIO(png_data)).convert("RGBA")
+            print("SVG OK")
+        except Exception as e:
+            print(f"SVG failed: {e}")
+
+    # 通用格式 PNG/JPG/WEBP/GIF/BMP/ICO 等
+    if img is None:
+        try:
+            img = Image.open(io.BytesIO(raw))
+            # ICO 取最大尺寸
+            if hasattr(img, 'ico') or getattr(img, 'format', '') == 'ICO':
+                sizes = list(img.ico.sizes())
+                if sizes:
+                    img.size = max(sizes, key=lambda s: s[0])
+            img = img.convert("RGBA")
+            print(f"Image OK: {img.format} {img.size}")
+        except Exception as e:
+            print(f"Image open failed: {e}")
+
+# 全部失败用默认纯色图标
+if img is None:
+    print("Using default icon")
+    img = Image.new("RGBA", (192, 192), (66, 133, 244, 255))
+    draw = ImageDraw.Draw(img)
+    draw.ellipse((20, 20, 172, 172), fill=(255, 255, 255, 200))
+
+for density, size in [("mdpi",48),("hdpi",72),("xhdpi",96),("xxhdpi",144),("xxxhdpi",192)]:
+    out  = img.resize((size, size), Image.LANCZOS)
+    base = f"app/src/main/res/mipmap-{density}"
+    os.makedirs(base, exist_ok=True)
+    out.save(f"{base}/ic_launcher.png")
+    mask = Image.new("RGBA", (size, size), (0,0,0,0))
+    ImageDraw.Draw(mask).ellipse((0,0,size,size), fill=(255,255,255,255))
+    result = Image.new("RGBA", (size, size), (0,0,0,0))
+    result.paste(out, mask=mask)
+    result.save(f"{base}/ic_launcher_round.png")
+print("Icon ALL OK")
+PYEOF
+
 
       - name: Build unsigned APK
         run: gradle assembleRelease --no-daemon
