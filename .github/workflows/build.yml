@@ -29,9 +29,19 @@ jobs:
         with:
           java-version: '17'
           distribution: temurin
+          cache: gradle
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
 
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -63,13 +73,13 @@ jobs:
           pip install Pillow -q
           python3 Scripts/process_icon.py
 
-      - name: Build APK
-        run: gradle assembleRelease --no-daemon
+      - name: Build APK (arm64 + armeabi-v7a)
+        run: |
+          gradle assembleRelease --no-daemon \
+            -Pandroid.injected.build.abi=arm64-v8a,armeabi-v7a
 
       - name: Sign APK
         run: |
-          UNSIGNED=$(find app/build/outputs/apk -name '*.apk' | head -1)
-          echo "Using: $UNSIGNED"
           KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | base64 --decode > /tmp/release.keystore
@@ -83,18 +93,26 @@ jobs:
             KEY_PASS="android"
           fi
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$UNSIGNED" /tmp/aligned.apk
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" --out /tmp/signed.apk /tmp/aligned.apk
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify /tmp/signed.apk
           SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
-          cp /tmp/signed.apk "/tmp/${SAFE}_${VER}.apk"
-          echo "APK_PATH=/tmp/${SAFE}_${VER}.apk" >> $GITHUB_ENV
+          mkdir -p /tmp/signed
+          for APK in $(find app/build/outputs/apk/release -name '*.apk'); do
+            ABI=$(echo "$APK" | grep -oP '(arm64-v8a|armeabi-v7a)' || echo "universal")
+            OUT="/tmp/signed/${SAFE}_${VER}_${ABI}.apk"
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_${ABI}.apk
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign \
+              --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" \
+              --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" \
+              --out "$OUT" /tmp/aligned_${ABI}.apk
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify "$OUT"
+            echo "Signed: $OUT"
+          done
+          echo "SIGNED_DIR=/tmp/signed" >> $GITHUB_ENV
           echo "APK_NAME=${SAFE}_${VER}" >> $GITHUB_ENV
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.APK_NAME }}
-          path: ${{ env.APK_PATH }}
+          path: ${{ env.SIGNED_DIR }}/*.apk
           retention-days: 7
