@@ -44,13 +44,18 @@ async function handleBuild(request, env) {
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
 
-  await sleep(4000);
-
-  const runs  = await (await gh(env,
-    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/runs?per_page=1`
-  )).json();
-  const runId = runs.workflow_runs?.[0]?.id;
-  if (!runId) return json({ error: 'Could not get run_id' }, 500);
+  // 记录触发时间，轮询直到出现比此时间更新的 run，避免拿到上一次的 run_id
+  const triggeredAt = new Date();
+  let runId = null;
+  for (let i = 0; i < 15; i++) {
+    await sleep(2000);
+    const runs = await (await gh(env,
+      `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/runs?per_page=5`
+    )).json();
+    const fresh = runs.workflow_runs?.find(r => new Date(r.created_at) >= triggeredAt);
+    if (fresh) { runId = fresh.id; break; }
+  }
+  if (!runId) return json({ error: 'Could not get run_id after 30s' }, 500);
   return json({ run_id: runId, status: 'queued' });
 }
 
@@ -107,25 +112,78 @@ async function handleStatus(request, env) {
 }
 
 async function handleDownload(request, env) {
-  const runId = new URL(request.url).searchParams.get('run_id');
+  const params = new URL(request.url).searchParams;
+  const runId  = params.get('run_id');
   if (!runId) return json({ error: 'Missing run_id' }, 400);
+
   const arts = await (await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
   )).json();
   const a = arts.artifacts?.[0];
   if (!a) return json({ error: 'Artifact not found' }, 404);
+
+  // 下载 ZIP 到内存
   const dl = await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/artifacts/${a.id}/zip`,
     { redirect: 'follow' }
   );
   if (!dl.ok) return json({ error: 'Download failed' }, 502);
-  return new Response(dl.body, {
+  const zipBuf = await dl.arrayBuffer();
+
+  // 尝试解压，直接返回 .apk
+  try {
+    const apk = await extractApkFromZip(zipBuf);
+    if (apk) {
+      const apkName = a.name.replace(/\.zip$/, '') + '.apk';
+      return new Response(apk, {
+        headers: {
+          'Content-Type': 'application/vnd.android.package-archive',
+          'Content-Disposition': `attachment; filename="${apkName}"`,
+          'Content-Length': apk.byteLength.toString(),
+          'Cache-Control': 'no-store',
+        }
+      });
+    }
+  } catch (_) {}
+
+  // 解压失败，降级返回原始 ZIP
+  return new Response(zipBuf, {
     headers: {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${a.name}.zip"`,
       'Cache-Control': 'no-store',
     }
   });
+}
+
+// 解析 ZIP Local File Headers，提取第一个 .apk 文件字节（支持 stored + deflate）
+async function extractApkFromZip(buf) {
+  const view  = new DataView(buf);
+  const bytes = new Uint8Array(buf);
+  let offset  = 0;
+  while (offset + 30 < bytes.length) {
+    if (view.getUint32(offset, true) !== 0x04034b50) break;
+    const compression = view.getUint16(offset + 8,  true);
+    const compSize    = view.getUint32(offset + 18, true);
+    const uncompSize  = view.getUint32(offset + 22, true);
+    const nameLen     = view.getUint16(offset + 26, true);
+    const extraLen    = view.getUint16(offset + 28, true);
+    const name        = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + nameLen));
+    const dataOffset  = offset + 30 + nameLen + extraLen;
+    if (name.endsWith('.apk')) {
+      const slice = buf.slice(dataOffset, dataOffset + compSize);
+      if (compression === 0) return slice;           // stored
+      if (compression === 8) {                       // deflate
+        const ds = new DecompressionStream('deflate-raw');
+        const writer = ds.writable.getWriter();
+        writer.write(new Uint8Array(slice));
+        writer.close();
+        return new Response(ds.readable).arrayBuffer();
+      }
+    }
+    offset = dataOffset + compSize;
+  }
+  return null;
 }
 
 const gh = (env, path, opts = {}) =>
