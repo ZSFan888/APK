@@ -209,8 +209,6 @@ Worker /download 接口  ──→  重定向到 GitHub Artifact 下载链接
 
 ## 注意事项
 
-- APK 文件保留 **7 天**，超期后需重新打包
-- 仅供**侧载安装**，不可上架 Google Play
 - GitHub Actions 免费账号每月有 **2000 分钟**额度，单次构建约消耗 3~5 分钟
 - 如不配置 Keystore Secrets，会自动生成临时 Debug Key 签名，**不同次打包签名不同，无法升级安装**
 
