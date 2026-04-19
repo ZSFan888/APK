@@ -61,7 +61,42 @@ async function handleStatus(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}`
   )).json();
   const result = { run_id: runId, status: data.status, conclusion: data.conclusion };
+
+  // 解析 job steps 获取精确进度
+  const jobsRes = await gh(env,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/jobs`
+  );
+  const jobs = await jobsRes.json();
+  const job = jobs.jobs?.[0];
+  if (job) {
+    const steps = job.steps || [];
+    const stepMap = {
+      'Inject parameters': 15,
+      'Process icon':      30,
+      'Build APK':         70,
+      'Sign APK':          90,
+      'Upload APK':        100,
+    };
+    let progress = 5;
+    let currentStep = '';
+    for (const step of steps) {
+      if (step.status === 'completed' && step.conclusion === 'success') {
+        for (const [name, pct] of Object.entries(stepMap)) {
+          if (step.name.includes(name)) progress = Math.max(progress, pct);
+        }
+      }
+      if (step.status === 'in_progress') {
+        currentStep = step.name;
+        const base = Object.entries(stepMap).find(([n]) => step.name.includes(n));
+        if (base) progress = Math.max(progress, base[1] - 10);
+      }
+    }
+    result.progress = progress;
+    result.current_step = currentStep;
+  }
+
   if (data.status === 'completed' && data.conclusion === 'success') {
+    result.progress = 100;
     const arts = await (await gh(env,
       `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
     )).json();
