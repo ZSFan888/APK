@@ -93,6 +93,10 @@ input{
 }
 input::placeholder{color:#bbb}
 input:focus{border-color:#111;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
+input:not(:placeholder-shown){background:#fafafa}
+input:-webkit-autofill,input:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 100px #fafafa inset!important;
+  -webkit-text-fill-color:#111!important}
 input.err{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.08)}
 
 .btn{
@@ -276,8 +280,7 @@ footer span{margin:0 8px;opacity:.4}
           <label for="f_pkg">包名</label>
           <input type="text" id="f_pkg" placeholder="com.example.myapp" required>
         </div>
-        <div class="row">
-          <div class="field">
+        <div class="field">
             <label for="f_ver">版本号</label>
             <input type="text" id="f_ver" placeholder="1.0.0" value="1.0.0" required>
           </div>
@@ -291,7 +294,6 @@ footer span{margin:0 8px;opacity:.4}
               <img id="iconImg" alt="icon">
             </div>
           </div>
-        </div>
         <button type="submit" class="btn" id="submitBtn">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           开始打包
