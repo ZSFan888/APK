@@ -89,23 +89,27 @@ APK/
 
 Worker 负责接收前端请求、触发 GitHub Actions、查询构建状态、转发下载链接。
 
-#### 方式一：Dashboard 部署（推荐新手）
+<details>
+<summary>🖥️ Dashboard 部署（推荐，无需安装任何工具）</summary>
 
 1. 打开 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Worker**
-2. 点击 **Create Worker**，随意取一个名字（如 `apk-builder-api`），点击 **Deploy**
-3. 进入刚创建的 Worker → **Edit Code**，将 `Worker/worker.js` 的全部内容粘贴进去，点击右上角 **Deploy**
-4. 回到 Worker 主页 → **Settings** → **Variables and Secrets**，添加以下环境变量：
+2. 随意取名（如 `apk-builder-api`）→ 点击 **Deploy**
+3. 进入刚创建的 Worker → **Edit Code** → 将 `Worker/worker.js` 全部内容粘贴进去 → 点击右上角 **Deploy**
+4. 回到 Worker 主页 → **Settings** → **Variables and Secrets**，添加以下变量：
 
-   | 变量名           | 值                        | 类型   |
-   |------------------|---------------------------|--------|
-   | `GITHUB_OWNER`   | 你的 GitHub 用户名         | Text   |
-   | `GITHUB_REPO`    | `APK`                     | Text   |
-   | `ALLOWED_ORIGIN` | `*`                       | Text   |
-   | `GH_PAT`         | 你的 GitHub PAT            | Secret |
+   | 变量名           | 值                  | 类型   |
+   |------------------|---------------------|--------|
+   | `GITHUB_OWNER`   | 你的 GitHub 用户名   | Text   |
+   | `GITHUB_REPO`    | `APK`               | Text   |
+   | `ALLOWED_ORIGIN` | `*`                 | Text   |
+   | `GH_PAT`         | 你的 GitHub PAT      | Secret |
 
 5. 记录 Worker URL：`https://apk-builder-api.<你的子域>.workers.dev`
 
-#### 方式二：Wrangler CLI 部署
+</details>
+
+<details>
+<summary>💻 Wrangler CLI 部署</summary>
 
 ```bash
 # 安装 Wrangler
@@ -129,11 +133,14 @@ wrangler secret put GH_PAT
 wrangler deploy
 ```
 
+</details>
+
 ---
 
 ### 第五步 — 部署前端到 Cloudflare Pages 🌐
 
-#### 方式一：连接 Git 仓库（推荐，自动同步更新）
+<details>
+<summary>🔗 连接 Git 仓库（推荐，提交代码后自动同步更新）</summary>
 
 1. 打开 [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages**
 2. 选择 **Connect to Git** → 授权并选择你 Fork 的仓库
@@ -147,11 +154,16 @@ wrangler deploy
 
 4. 点击 **Save and Deploy**，等待首次部署完成
 
-#### 方式二：直接上传（无需 Git 连接）
+</details>
+
+<details>
+<summary>📁 直接上传文件（无需 Git，快速体验）</summary>
 
 1. 打开 **Workers & Pages** → **Create** → **Pages** → **Upload assets**
 2. 随意输入项目名称，点击 **Create project**
 3. 将 `Frontend/index.html` 拖入上传区域，点击 **Deploy site**
+
+</details>
 
 ---
 
