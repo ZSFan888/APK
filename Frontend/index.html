@@ -194,6 +194,48 @@ footer{
   font-size:12px;color:#aaa;
 }
 footer span{margin:0 8px;opacity:.4}
+
+/* ── Icon Preview ── */
+.icon-field{display:flex;gap:10px;align-items:flex-start}
+.icon-field .field{flex:1}
+.icon-preview{
+  width:48px;height:48px;border-radius:10px;flex-shrink:0;margin-top:22px;
+  background:#f5f5f5;border:1px solid #e8e8e8;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+}
+.icon-preview img{width:100%;height:100%;object-fit:cover;display:none}
+.icon-preview-placeholder{width:20px;height:20px;opacity:.25}
+
+/* ── History Card ── */
+.history-card{
+  background:#fff;border:1px solid #e8e8e8;border-radius:16px;padding:20px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.06);margin-top:16px;display:none;
+}
+.history-card.show{display:block}
+.history-title{
+  font-size:12px;font-weight:600;color:#888;
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.history-clear{font-size:11px;color:#bbb;cursor:pointer;font-weight:400;text-transform:none;letter-spacing:0}
+.history-clear:hover{color:#ef4444}
+.history-list{display:flex;flex-direction:column;gap:8px}
+.history-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:#f9f9f9;border:1px solid #efefef;border-radius:8px;
+  cursor:pointer;transition:background .15s;
+}
+.history-item:hover{background:#f0f0f0}
+.history-icon{
+  width:32px;height:32px;border-radius:7px;overflow:hidden;
+  background:#e8e8e8;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+}
+.history-icon img{width:100%;height:100%;object-fit:cover}
+.history-info{flex:1;min-width:0}
+.history-name{font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-meta{font-size:11px;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-use{font-size:11px;color:#888;flex-shrink:0}
+
 </style>
 </head>
 <body>
@@ -235,9 +277,15 @@ footer span{margin:0 8px;opacity:.4}
             <label for="f_ver">版本号</label>
             <input type="text" id="f_ver" placeholder="1.0.0" value="1.0.0" required>
           </div>
-          <div class="field">
-            <label for="f_icon">图标 URL</label>
-            <input type="url" id="f_icon" placeholder="https://…/icon.png" required>
+          <div class="icon-field">
+            <div class="field">
+              <label for="f_icon">图标 URL</label>
+              <input type="url" id="f_icon" placeholder="https://…/icon.png" required>
+            </div>
+            <div class="icon-preview" id="iconPreview">
+              <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <img id="iconImg" alt="icon">
+            </div>
           </div>
         </div>
         <button type="submit" class="btn" id="submitBtn">
@@ -280,6 +328,16 @@ footer span{margin:0 8px;opacity:.4}
         <svg style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
         下载 APK
       </button>
+    </div>
+  </div>
+
+    <!-- 打包历史 -->
+    <div class="history-card" id="historyCard">
+      <div class="history-title">
+        打包历史
+        <span class="history-clear" id="historyClear">清空</span>
+      </div>
+      <div class="history-list" id="historyList"></div>
     </div>
   </div>
 
@@ -381,7 +439,7 @@ form.addEventListener('submit', async e => {
 
     setStep(1,'done'); setStep(2,'active'); setProgress(18);
     setTitle('排队中','等待 GitHub Actions 启动…');
-    startPoll(json.run_id);
+    startPoll(json.run_id, data);
 
   } catch(err){
     const msg = err.message.includes('fetch') || err.message.includes('network') || err.message === 'Failed to fetch'
@@ -391,7 +449,7 @@ form.addEventListener('submit', async e => {
   }
 });
 
-function startPoll(runId){
+function startPoll(runId, data){
   let elapsed = 0;
   pollTimer = setInterval(async ()=>{
     elapsed += 5;
@@ -416,6 +474,7 @@ function startPoll(runId){
           setBusy(false);
           dlBtn.classList.add('show');
           dlBtn.onclick = () => { window.location.href = WORKER + '/download?run_id=' + runId; };
+          addHistory(data);
         } else {
           setStep(4,'fail');
           showErr('构建失败，请检查参数后重试');
@@ -429,6 +488,105 @@ function startPoll(runId){
 document.querySelectorAll('input').forEach(el=>{
   el.addEventListener('input', ()=> el.classList.remove('err'));
 });
+
+/* ── 表单记忆 ── */
+const SAVE_KEYS = ['f_url','f_name','f_pkg','f_ver','f_icon'];
+function saveForm(){
+  const saved = {};
+  SAVE_KEYS.forEach(id => { saved[id] = document.getElementById(id).value; });
+  localStorage.setItem('apkbuilder_form', JSON.stringify(saved));
+}
+function loadForm(){
+  try {
+    const saved = JSON.parse(localStorage.getItem('apkbuilder_form') || '{}');
+    SAVE_KEYS.forEach(id => {
+      if(saved[id]) document.getElementById(id).value = saved[id];
+    });
+    if(saved['f_icon']) triggerIconPreview(saved['f_icon']);
+  } catch(e){}
+}
+SAVE_KEYS.forEach(id => {
+  document.getElementById(id).addEventListener('input', saveForm);
+});
+loadForm();
+
+/* ── 图标预览 ── */
+const iconInput   = document.getElementById('f_icon');
+const iconImg     = document.getElementById('iconImg');
+const iconPreview = document.getElementById('iconPreview');
+let iconTimer = null;
+
+function triggerIconPreview(url){
+  if(!url) return;
+  iconImg.style.display = 'none';
+  const tmp = new Image();
+  tmp.onload  = () => { iconImg.src = url; iconImg.style.display = 'block'; };
+  tmp.onerror = () => { iconImg.style.display = 'none'; };
+  tmp.src = url;
+}
+
+iconInput.addEventListener('input', () => {
+  clearTimeout(iconTimer);
+  iconTimer = setTimeout(() => triggerIconPreview(iconInput.value.trim()), 600);
+});
+
+/* ── 打包历史 ── */
+const HISTORY_KEY = 'apkbuilder_history';
+const historyCard = document.getElementById('historyCard');
+const historyList = document.getElementById('historyList');
+const historyClear = document.getElementById('historyClear');
+
+function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
+function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
+
+function renderHistory(){
+  const h = getHistory();
+  if(!h.length){ historyCard.classList.remove('show'); return; }
+  historyCard.classList.add('show');
+  historyList.innerHTML = h.map((item,i) => `
+    <div class="history-item" data-idx="${i}">
+      <div class="history-icon">
+        ${item.icon_url ? `<img src="${item.icon_url}" onerror="this.style.display='none'">` : ''}
+      </div>
+      <div class="history-info">
+        <div class="history-name">${item.app_name}</div>
+        <div class="history-meta">${item.package_name} · v${item.version_name}</div>
+      </div>
+      <div class="history-use">复用 ›</div>
+    </div>
+  `).join('');
+
+  historyList.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const item = getHistory()[+el.dataset.idx];
+      document.getElementById('f_url').value  = item.app_url;
+      document.getElementById('f_name').value = item.app_name;
+      document.getElementById('f_pkg').value  = item.package_name;
+      document.getElementById('f_ver').value  = item.version_name;
+      document.getElementById('f_icon').value = item.icon_url;
+      saveForm();
+      triggerIconPreview(item.icon_url);
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+}
+
+historyClear.addEventListener('click', () => {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+});
+
+function addHistory(data){
+  const h = getHistory().filter(x => x.package_name !== data.package_name);
+  h.unshift(data);
+  saveHistory(h);
+  renderHistory();
+}
+
+renderHistory();
+
+/* ── 构建成功时记录历史 ── */
+const _origStartPoll = startPoll;
 </script>
 </body>
 </html>
