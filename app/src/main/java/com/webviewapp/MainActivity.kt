@@ -22,6 +22,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -29,6 +30,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var progressBar: TopProgressBar
     private lateinit var overlay: View
     private lateinit var spinner: IOSSpinnerView
@@ -70,6 +72,13 @@ class MainActivity : AppCompatActivity() {
         overlay     = findViewById(R.id.overlay)
         spinner     = findViewById(R.id.spinner)
         loadingText = findViewById(R.id.loadingText)
+        swipeRefresh = findViewById(R.id.swipeRefresh)
+        swipeRefresh.setColorSchemeColors(
+            android.graphics.Color.parseColor("#6366F1")
+        )
+        swipeRefresh.setOnRefreshListener {
+            webView.reload()
+        }
         showOverlay()
         setupWebView()
     }
@@ -95,6 +104,11 @@ class MainActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 showOverlay()
+            }
+
+            override fun onPageFinished(view: WebView, url: String) {
+                swipeRefresh.isRefreshing = false
+                fetchThemeColor(view)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
