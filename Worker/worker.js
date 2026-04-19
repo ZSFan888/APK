@@ -108,6 +108,34 @@ async function handleStatus(request, env) {
     const a = arts.artifacts?.[0];
     if (a) { result.artifact_id = a.id; result.artifact_name = a.name; }
   }
+
+  // 构建失败时找出失败步骤，并拉取该步骤的日志片段
+  if (data.status === 'completed' && data.conclusion === 'failure') {
+    const steps = jobs.jobs?.[0]?.steps || [];
+    const failedStep = steps.find(s => s.conclusion === 'failure');
+    if (failedStep) {
+      result.failed_step = failedStep.name;
+      // 拉取日志，截取最后 30 行作为错误摘要
+      try {
+        const logRes = await gh(env,
+          `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/jobs/${jobs.jobs[0].id}/logs`
+        );
+        if (logRes.ok) {
+          const logText = await logRes.text();
+          const lines = logText.split('\n').filter(l => l.trim());
+          // 找失败步骤附近的错误行（含 Error/error/FAILED/exception）
+          const errLines = lines.filter(l =>
+            /error|failed|exception|cannot|unable|no such/i.test(l) &&
+            !/^##\[group\]|^##\[endgroup\]/i.test(l)
+          );
+          result.failed_log = errLines.slice(-8).map(l =>
+            l.replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z /, '').trim()
+          ).join('\n');
+        }
+      } catch (_) {}
+    }
+  }
+
   return json(result);
 }
 
