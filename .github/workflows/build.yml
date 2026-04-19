@@ -61,7 +61,7 @@ jobs:
           ICON_URL: ${{ github.event.inputs.icon_url }}
         run: |
           pip install Pillow -q
-          python3 scripts/process_icon.py
+          python3 Scripts/process_icon.py
 
       - name: Build APK
         run: gradle assembleRelease --no-daemon
