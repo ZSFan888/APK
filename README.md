@@ -1,9 +1,11 @@
-# 网页转 APK 工具
+# Pakr
 
 > 填写网址和基本信息，3~5 分钟自动生成可安装的 Android APK。
 > 无需本地安装任何工具，全程云端完成编译、签名、打包。
 
 **在线体验：** [apk-c1m.pages.dev](https://apk-c1m.pages.dev)
+
+**GitHub：** [ZSFan888/APK](https://github.com/ZSFan888/APK)
 
 ---
 
