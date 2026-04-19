@@ -1,6 +1,9 @@
 package com.webviewapp
 
 import android.annotation.SuppressLint
+import android.app.DownloadManager
+import android.content.Context
+import android.os.Environment
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -131,9 +134,35 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         }
-        webView.setDownloadListener { url, _, _, _, _ ->
-            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
+        webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
+            try {
+                val uri = Uri.parse(url)
+                val filename = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+                val req = DownloadManager.Request(uri).apply {
+                    setMimeType(mimetype)
+                    addRequestHeader("User-Agent", userAgent)
+                    setDescription("正在下载...")
+                    setTitle(filename)
+                    allowScanningByMediaScanner()
+                    setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                    setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+                }
+                val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                dm.enqueue(req)
+                android.widget.Toast.makeText(this, "开始下载：$filename", android.widget.Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
+            }
         }
+        // 键盘弹出适配：FLAG_FULLSCREEN 下 adjustResize 失效，手动监听 Insets
+        val rootView = window.decorView.rootView
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+            val imeHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
+            val navHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom
+            webView.setPadding(0, 0, 0, if (imeHeight > 0) imeHeight - navHeight else 0)
+            insets
+        }
+
         webView.addJavascriptInterface(object {
             @JavascriptInterface
             fun onThemeColor(hex: String) {
