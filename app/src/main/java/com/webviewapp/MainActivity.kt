@@ -134,7 +134,21 @@ class MainActivity : AppCompatActivity() {
         webView.setDownloadListener { url, _, _, _, _ ->
             try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
         }
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun onThemeColor(hex: String) {
+                try {
+                    val color = android.graphics.Color.parseColor(hex)
+                    runOnUiThread { progressBar.setBarColor(color) }
+                } catch (e: Exception) {}
+            }
+        }, "ThemeBridge")
         webView.loadUrl(APP_URL)
+    }
+
+    private fun fetchThemeColor(view: WebView) {
+        val js = "(function() { var m = document.querySelector('meta[name="theme-color"]'); if (m && m.content) { ThemeBridge.onThemeColor(m.content); return; } var el = document.elementFromPoint(window.innerWidth/2, 1); if (el) { var bg = getComputedStyle(el).backgroundColor; var r = bg.match(/rgba?\\((\\d+),(\\d+),(\\d+)/); if (r) ThemeBridge.onThemeColor('#'+[r[1],r[2],r[3]].map(function(x){return ('0'+parseInt(x).toString(16)).slice(-2)}).join('')); } })();"
+        view.evaluateJavascript(js, null)
     }
 
     private fun showOverlay() {
