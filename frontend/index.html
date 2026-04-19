@@ -216,7 +216,6 @@ footer span{margin:0 8px;opacity:.4}
     <div class="card">
       <div class="card-title">
         填写应用信息
-        <span class="card-title-badge">Step 1</span>
       </div>
       <form class="form" id="form" novalidate>
         <div class="field">
@@ -230,7 +229,6 @@ footer span{margin:0 8px;opacity:.4}
         <div class="field">
           <label for="f_pkg">包名</label>
           <input type="text" id="f_pkg" placeholder="com.example.myapp" required>
-          <div class="hint">至少三段，如 com.company.app，纯小写字母和数字</div>
         </div>
         <div class="row">
           <div class="field">
@@ -288,13 +286,7 @@ footer span{margin:0 8px;opacity:.4}
 
 </div>
 
-<footer>
-  APK 保留 7 天
-  <span>·</span>
-  仅供侧载安装
-  <span>·</span>
-  不可上架 Google Play
-</footer>
+<footer></footer>
 
 <script>
 const WORKER = 'https://apk-builder-api.456789666.workers.dev';
