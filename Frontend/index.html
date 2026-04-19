@@ -236,6 +236,10 @@ footer span{margin:0 8px;opacity:.4}
 .history-meta{font-size:11px;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-use{font-size:11px;color:#888;flex-shrink:0}
 
+
+.err-detail{margin-top:10px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;text-align:left}
+.err-detail-title{font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px}
+.err-detail-log{font-size:11px;color:#7f1d1d;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.5}
 </style>
 </head>
 <body>
@@ -504,7 +508,15 @@ function startPoll(runId, data){
           addHistory(data);
         } else {
           setStep(4,'fail');
-          showErr('构建失败，请检查参数后重试');
+          const failStep = data.failed_step ? `步骤「${data.failed_step}」失败` : '构建失败';
+          showErr(failStep + '，请检查参数后重试');
+          if (data.failed_log) {
+            const box = document.getElementById('statusBox');
+            const detail = document.createElement('div');
+            detail.className = 'err-detail';
+            detail.innerHTML = `<div class="err-detail-title">错误日志</div><div class="err-detail-log">${data.failed_log.replace(/</g,'&lt;')}</div>`;
+            box.appendChild(detail);
+          }
         }
       }
     } catch(e){ /* 网络抖动忽略 */ }
