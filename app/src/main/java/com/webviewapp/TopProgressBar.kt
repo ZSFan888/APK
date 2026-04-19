@@ -19,6 +19,11 @@ class TopProgressBar @JvmOverloads constructor(
     }
     private var progress = 0
 
+    fun setBarColor(color: Int) {
+        paint.color = color
+        invalidate()
+    }
+
     fun setProgress(value: Int) {
         progress = value.coerceIn(0, 100)
         invalidate()
