@@ -400,6 +400,17 @@ footer span{margin:0 8px;opacity:.4}
             </div>
           </div>
 
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">禁止截图</div>
+            <div class="toggle-desc">开启后 App 内无法截图/录屏</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="f_no_screenshot">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
         <button type="submit" class="btn" id="submitBtn">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           开始打包
@@ -537,7 +548,7 @@ form.addEventListener('submit', async e => {
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
     icon_url:      document.getElementById('f_icon').value.trim(),
-    no_screenshot: 'false',
+    no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
 
   };
 
