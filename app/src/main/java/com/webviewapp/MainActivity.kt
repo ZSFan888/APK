@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var overlayVisible = false
+    private var isFirstLoad = true
 
     private val dotsFrames = arrayOf("", ".", "..", "...")
     private var dotsIndex = 0
@@ -104,7 +105,7 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-                showOverlay()
+                if (isFirstLoad) showOverlay()
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -130,7 +131,10 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 progressBar.setProgress(newProgress)
-                if (newProgress >= 75) hideOverlay()
+                if (newProgress >= 75 && isFirstLoad) {
+                    hideOverlay()
+                    isFirstLoad = false
+                }
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
