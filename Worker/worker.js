@@ -400,31 +400,6 @@ footer span{margin:0 8px;opacity:.4}
             </div>
           </div>
 
-        <!-- 权限申请 -->
-        <div class="toggle-row" style="flex-direction:column;align-items:flex-start;gap:10px">
-          <div>
-            <div class="toggle-label">申请权限</div>
-            <div class="toggle-desc">勾选 App 需要用到的权限</div>
-          </div>
-          <div class="perm-grid">
-            <label class="perm-item">
-              <input type="checkbox" id="perm_camera" checked>
-              <span class="perm-icon">📷</span><span>相机</span>
-            </label>
-            <label class="perm-item">
-              <input type="checkbox" id="perm_microphone">
-              <span class="perm-icon">🎤</span><span>麦克风</span>
-            </label>
-            <label class="perm-item">
-              <input type="checkbox" id="perm_location">
-              <span class="perm-icon">📍</span><span>位置</span>
-            </label>
-            <label class="perm-item">
-              <input type="checkbox" id="perm_storage" checked>
-              <span class="perm-icon">💾</span><span>存储</span>
-            </label>
-          </div>
-        </div>
         <button type="submit" class="btn" id="submitBtn">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           开始打包
@@ -563,9 +538,7 @@ form.addEventListener('submit', async e => {
     version_name: document.getElementById('f_ver').value.trim(),
     icon_url:      document.getElementById('f_icon').value.trim(),
     no_screenshot: 'false',
-    permissions: ['camera','microphone','location','storage']
-      .filter(p => document.getElementById('perm_'+p)?.checked)
-      .join(',') || 'none',
+
   };
 
   setBusy(true);
@@ -898,7 +871,7 @@ export default {
 };
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot, permissions } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
   if (!app_url || !app_name || !package_name || !version_name || !icon_url)
     return json({ error: 'Missing required fields' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/;
@@ -909,7 +882,7 @@ async function handleBuild(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false', permissions: permissions||'camera,storage' }
+        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false' }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
