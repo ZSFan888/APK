@@ -55,6 +55,12 @@ class MainActivity : AppCompatActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if ("{{NO_SCREENSHOT}}" == "true") {
+            window.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
         setContentView(R.layout.activity_main)
         webView     = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
