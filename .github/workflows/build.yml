@@ -22,6 +22,10 @@ on:
         description: Disable screenshot (true/false)
         required: false
         default: 'false'
+      permissions:
+        description: Comma-separated permissions (camera,microphone,location,storage)
+        required: false
+        default: 'camera,storage'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -71,6 +75,33 @@ jobs:
           sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
           NO_SS="${{ github.event.inputs.no_screenshot }}"
           sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
+          PERMS="${{ github.event.inputs.permissions }}"
+          # camera
+          if echo "$PERMS" | grep -q "camera"; then
+            sed -i 's|{{PERM_CAMERA}}|<uses-permission android:name="android.permission.CAMERA" />|g' app/src/main/AndroidManifest.xml
+          else
+            sed -i 's|{{PERM_CAMERA}}||g' app/src/main/AndroidManifest.xml
+          fi
+          # microphone
+          if echo "$PERMS" | grep -q "microphone"; then
+            sed -i 's|{{PERM_MICROPHONE}}|<uses-permission android:name="android.permission.RECORD_AUDIO" />|g' app/src/main/AndroidManifest.xml
+          else
+            sed -i 's|{{PERM_MICROPHONE}}||g' app/src/main/AndroidManifest.xml
+          fi
+          # location
+          if echo "$PERMS" | grep -q "location"; then
+            sed -i 's|{{PERM_LOCATION}}|<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /><uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />|g' app/src/main/AndroidManifest.xml
+          else
+            sed -i 's|{{PERM_LOCATION}}||g' app/src/main/AndroidManifest.xml
+          fi
+          # storage
+          if echo "$PERMS" | grep -q "storage"; then
+            sed -i 's|{{PERM_STORAGE}}|<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /><uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />|g' app/src/main/AndroidManifest.xml
+          else
+            sed -i 's|{{PERM_STORAGE}}||g' app/src/main/AndroidManifest.xml
+          fi
+          # inject permissions string into kt
+          sed -i "s|{{PERMISSIONS}}|${PERMS}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
 
       - name: Process icon
         env:
