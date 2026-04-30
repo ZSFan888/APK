@@ -10,7 +10,7 @@ export default {
       else if (url.pathname === '/status'   && request.method === 'GET')  res = await handleStatus(request, env);
       else if (url.pathname === '/logs'     && request.method === 'GET')  res = await handleLogs(request, env);
       else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
-      else res = json({ error: 'Not found' }, 404);
+      else return env.ASSETS.fetch(request);
       return cors(res, env);
     } catch (e) {
       return cors(json({ error: e.message }, 500), env);
