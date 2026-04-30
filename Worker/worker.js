@@ -398,6 +398,7 @@ const dlBtn     = document.getElementById('dlBtn');
 
 let pollTimer = null;
 let busy = false;
+let currentRunId = null;
 
 function setBusy(v){ busy=v; submitBtn.disabled=v; }
 
@@ -488,6 +489,7 @@ form.addEventListener('submit', async e => {
 function startPoll(runId, data){
   let elapsed = 0;
   const MAX_WAIT = 900; // 最长等 15 分钟
+  currentRunId = runId;
   pollTimer = setInterval(async ()=>{
     elapsed += 5;
     try {
@@ -506,15 +508,18 @@ function startPoll(runId, data){
         const pct = data.progress || est;
         setProgress(Math.min(pct, 95));
         const step = data.current_step || '';
+        const si = data.step_index||0, st = data.step_total||5;
+        const stepLabel = st>0 ? ` · 步骤 ${si}/${st}` : '';
         if(step.includes('Inject') || pct < 20){
-          setStep(2,'active'); setTitle('构建中','注入参数 & 处理图标…');
+          setStep(2,'active'); setTitle('构建中','注入参数 & 处理图标…'+stepLabel);
         } else if(step.includes('Process') || pct < 35){
-          setStep(2,'done'); setStep(3,'active'); setTitle('构建中','处理图标资源…');
+          setStep(2,'done'); setStep(3,'active'); setTitle('构建中','处理图标资源…'+stepLabel);
         } else if(step.includes('Build') || pct < 85){
-          setStep(2,'done'); setStep(3,'active'); setTitle('编译中','Gradle 正在编译 APK…');
+          setStep(2,'done'); setStep(3,'active'); setTitle('编译中','Gradle 正在编译 APK…'+stepLabel);
         } else {
-          setStep(3,'done'); setStep(4,'active'); setTitle('签名中','正在签名打包…');
+          setStep(3,'done'); setStep(4,'active'); setTitle('签名中','正在签名打包…'+stepLabel);
         }
+        fetchLogs(runId, data.job_id);
       }
 
       if(data.status === 'completed'){
@@ -527,6 +532,7 @@ function startPoll(runId, data){
           setBusy(false);
           renderDownloadButtons(data, runId);
           addHistory(data);
+          fetchLogs(runId, data.job_id);
         } else if(data.conclusion === 'failure'){
           setStep(4,'fail');
           const failStep = data.failed_step ? \`步骤「\${data.failed_step}」失败\` : '构建失败';
@@ -583,39 +589,29 @@ async function tryFetchArtifacts(runId, data){
 function renderDownloadButtons(data, runId){
   const dlActions = document.getElementById('dlActions');
   dlActions.innerHTML = '';
-  const artifacts = data.artifacts || (data.artifact_id ? [{id: data.artifact_id, name: data.artifact_name}] : []);
-  const firstUrl = WORKER + '/download?run_id=' + runId + (artifacts[0] ? '&artifact_id=' + artifacts[0].id : '');
+  const artifacts = data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []);
+  const DL_ICO = '<svg style="width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>';
 
-  if (artifacts.length === 0) {
-    // 兜底：没有 artifact 信息时直接用 run_id 下载
+  if(artifacts.length === 0){
     const btn = document.createElement('button');
-    btn.className = 'download-btn show';
-    btn.style.flex = '1';
-    btn.innerHTML = '<svg style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg> 下载 APK';
-    btn.onclick = () => { window.location.href = firstUrl; };
+    btn.className='download-btn show'; btn.style.flex='1';
+    btn.innerHTML=DL_ICO+' 下载 APK';
+    btn.onclick=()=>{ window.location.href=WORKER+'/download?run_id='+runId; };
     dlActions.appendChild(btn);
   } else {
-    // 多架构下载按钮
-    artifacts.forEach((art, i) => {
-      const dlUrl = WORKER + '/download?run_id=' + runId + '&artifact_id=' + art.id;
-      const arch = art.name.match(/arm64|armeabi|x86_64|universal/i)?.[0] || (i === 0 ? 'arm64' : 'armeabi');
+    artifacts.forEach(art => {
+      const isArm64   = art.name && /arm64/i.test(art.name);
+      const isArmeabi = art.name && /armeabi/i.test(art.name);
+      const label = isArm64 ? 'arm64（主流）' : isArmeabi ? 'armeabi（老设备）' : '下载 APK';
+      const dlUrl = WORKER+'/download?run_id='+runId+'&artifact_id='+art.id;
       const btn = document.createElement('button');
-      btn.className = 'download-btn show';
-      btn.style.flex = '1';
-      btn.innerHTML = \`<svg style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg> \${arch}\`;
-      btn.onclick = () => { window.location.href = dlUrl; };
+      btn.className='download-btn show'; btn.style.flex='1';
+      btn.innerHTML=DL_ICO+' ↓ '+label;
+      btn.onclick=()=>{ window.location.href=dlUrl; };
       dlActions.appendChild(btn);
     });
   }
-
-  // 二维码按钮
-  const qrBtn = document.createElement('button');
-  qrBtn.className = 'download-btn show';
-  qrBtn.style.cssText = 'flex:0 0 auto;background:#f5f5f5;color:#111;border:1px solid #e0e0e0';
-  qrBtn.innerHTML = '<svg style="width:15px;height:15px;fill:none;stroke:#333;stroke-width:2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/></svg> 二维码';
-  qrBtn.onclick = () => showQrModal(firstUrl);
-  dlActions.appendChild(qrBtn);
-  dlActions.style.display = 'flex';
+  dlActions.style.display='flex';
 }
 
 function saveForm(){
@@ -664,7 +660,7 @@ const historyList = document.getElementById('historyList');
 const historyClear = document.getElementById('historyClear');
 
 function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
-function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
+function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,10))); }
 
 function renderHistory(){
   const h = getHistory();
@@ -689,7 +685,9 @@ function renderHistory(){
       document.getElementById('f_url').value  = item.app_url;
       document.getElementById('f_name').value = item.app_name;
       document.getElementById('f_pkg').value  = item.package_name;
-      document.getElementById('f_ver').value  = item.version_name;
+      const _vp = (item.version_name||'1.0.0').split('.');
+      _vp[_vp.length-1] = String((parseInt(_vp[_vp.length-1])||0)+1);
+      document.getElementById('f_ver').value = _vp.join('.');
       document.getElementById('f_icon').value = item.icon_url;
       saveForm();
       triggerIconPreview(item.icon_url);
@@ -704,13 +702,47 @@ historyClear.addEventListener('click', () => {
 });
 
 function addHistory(data){
-  const h = getHistory().filter(x => x.package_name !== data.package_name);
-  h.unshift(data);
+  const item = {
+    run_id:       data.run_id || currentRunId,
+    app_name:     document.getElementById('f_name').value.trim(),
+    package_name: document.getElementById('f_pkg').value.trim(),
+    version_name: document.getElementById('f_ver').value.trim(),
+    icon_url:     document.getElementById('f_icon').value.trim(),
+    app_url:      document.getElementById('f_url').value.trim(),
+    artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
+    ts: Date.now(),
+  };
+  const h = getHistory().filter(x => x.package_name !== item.package_name);
+  h.unshift(item);
   saveHistory(h);
   renderHistory();
 }
 
 renderHistory();
+
+/* ── 日志实时流 ── */
+let logLines = [];
+function toggleLog(){
+  const pre = document.getElementById('logContent');
+  const ico = document.getElementById('logToggleIcon');
+  const show = pre.style.display==='none';
+  pre.style.display = show ? 'block' : 'none';
+  ico.textContent   = show ? '▲ 收起' : '▼ 展开';
+}
+async function fetchLogs(runId, jobId){
+  if(!runId) return;
+  try{
+    const url = WORKER+'/logs?run_id='+runId+(jobId?'&job_id='+jobId:'');
+    const d = await (await fetch(url)).json();
+    if(!d.lines||!d.lines.length) return;
+    const panel = document.getElementById('logPanel');
+    const pre   = document.getElementById('logContent');
+    panel.style.display='block';
+    const newLines = d.lines.slice(logLines.length);
+    logLines = d.lines;
+    if(newLines.length){ pre.textContent=logLines.join('\n'); pre.scrollTop=pre.scrollHeight; }
+  }catch(_){}
+}
 
 /* ── 构建成功时记录历史 ── */
 const _origStartPoll = startPoll;
@@ -737,6 +769,7 @@ export default {
       let res;
       if      (url.pathname === '/build'    && request.method === 'POST') res = await handleBuild(request, env);
       else if (url.pathname === '/status'   && request.method === 'GET')  res = await handleStatus(request, env);
+      else if (url.pathname === '/logs'     && request.method === 'GET')  res = await handleLogs(request, env);
       else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
       else res = json({ error: 'Not found' }, 404);
       return cors(res, env);
@@ -784,7 +817,7 @@ async function handleStatus(request, env) {
   const data = await (await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}`
   )).json();
-  const result = { run_id: runId, status: data.status, conclusion: data.conclusion };
+  const result = { run_id: runId, status: data.status, conclusion: data.conclusion, job_id: null, step_index: 0, step_total: 0 };
 
   // 解析 job steps 获取精确进度
   const jobsRes = await gh(env,
@@ -793,18 +826,14 @@ async function handleStatus(request, env) {
   const jobs = await jobsRes.json();
   const job = jobs.jobs?.[0];
   if (job) {
+    result.job_id = job.id;
     const steps = job.steps || [];
-    const stepMap = {
-      'Inject parameters': 15,
-      'Process icon':      30,
-      'Build APK':         70,
-      'Sign APK':          90,
-      'Upload APK':        100,
-    };
-    let progress = 5;
-    let currentStep = '';
-    for (const step of steps) {
+    const userSteps = steps.filter(s => !['Set up job','Post','Complete job','Cache'].some(k => s.name.includes(k)));
+    const stepMap = { 'Inject':15,'Process':30,'Build':70,'Sign':90,'Upload':100 };
+    let progress = 5, currentStep = '', stepIndex = 0;
+    for (const step of userSteps) {
       if (step.status === 'completed' && step.conclusion === 'success') {
+        stepIndex++;
         for (const [name, pct] of Object.entries(stepMap)) {
           if (step.name.includes(name)) progress = Math.max(progress, pct);
         }
@@ -815,8 +844,10 @@ async function handleStatus(request, env) {
         if (base) progress = Math.max(progress, base[1] - 10);
       }
     }
-    result.progress = progress;
+    result.progress    = progress;
     result.current_step = currentStep;
+    result.step_index  = stepIndex;
+    result.step_total  = userSteps.length || 5;
   }
 
   if (data.status === 'completed' && data.conclusion === 'success') {
@@ -864,6 +895,32 @@ async function handleStatus(request, env) {
   }
 
   return json(result);
+}
+
+async function handleLogs(request, env) {
+  const p = new URL(request.url).searchParams;
+  const runId = p.get('run_id'), jobId = p.get('job_id');
+  if (!runId) return json({ lines: [] });
+  let jid = jobId;
+  if (!jid) {
+    const jr = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/jobs`);
+    const jd = await jr.json();
+    jid = jd.jobs?.[0]?.id;
+  }
+  if (!jid) return json({ lines: [] });
+  try {
+    const lr = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/jobs/${jid}/logs`);
+    if (!lr.ok) return json({ lines: [] });
+    const raw = await lr.text();
+    const lines = raw.split('\n')
+      .map(l => l.replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z /, '').replace(/\x1b\[[\d;]*m/g,'').trim())
+      .filter(l => l &&
+        !/^##\[group|^##\[endgroup/i.test(l) &&
+        !/California|MIPS|Evaluation|Recipient|UL or FCC|Pre-Release|GOOGLE_|LIMITATION|LICENSE|jurisdic/i.test(l) &&
+        !/^shell:|^env:|^with:|JAVA_HOME|ANDROID_HOME|GRADLE_USER/i.test(l)
+      );
+    return json({ lines: lines.slice(-150) });
+  } catch(_) { return json({ lines: [] }); }
 }
 
 async function handleDownload(request, env) {
