@@ -259,11 +259,56 @@ footer span{margin:0 8px;opacity:.4}
 .history-name{font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-meta{font-size:11px;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-use{font-size:11px;color:#888;flex-shrink:0}
+.history-dl{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.history-dl-btn{
+  font-size:10px;font-weight:500;color:#555;
+  background:#f5f5f5;border:1px solid #e0e0e0;
+  border-radius:5px;padding:2px 8px;
+  text-decoration:none;white-space:nowrap;
+  transition:background .15s,color .15s;
+}
+.history-dl-btn:hover{background:#111;color:#fff;border-color:#111}
+
 
 
 .err-detail{margin-top:10px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;text-align:left}
 .err-detail-title{font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px}
 .err-detail-log{font-size:11px;color:#7f1d1d;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.5}
+
+/* ── Dark Mode ── */
+@media(prefers-color-scheme:dark){
+  body{background:#111;color:#e8e8e8}
+  nav{background:rgba(17,17,17,0.85);border-bottom-color:#2a2a2a}
+  .nav-logo{color:#e8e8e8}
+  .nav-badge{background:#1e1e1e;border-color:#2a2a2a;color:#888}
+  .github-link{color:#aaa;background:#1e1e1e;border-color:#2a2a2a}
+  .github-link:hover{background:#e8e8e8;color:#111;border-color:#e8e8e8}
+  .hero h1{color:#e8e8e8}
+  .hero h1 span{color:#888}
+  .hero p{color:#888}
+  .hero-tag{background:#1e1e1e;border-color:#2a2a2a;color:#aaa}
+  .card{background:#1a1a1a;border-color:#2a2a2a;box-shadow:0 4px 24px rgba(0,0,0,0.3)}
+  label{color:#aaa}
+  .input-wrap input,.input-wrap select{background:#111;border-color:#2a2a2a;color:#e8e8e8}
+  .input-wrap input::placeholder{color:#555}
+  .input-wrap input:focus,.input-wrap select:focus{border-color:#555;box-shadow:0 0 0 3px rgba(255,255,255,0.06)}
+  .btn-primary{background:#e8e8e8;color:#111}
+  .btn-primary:hover{background:#fff}
+  .step-item{background:#1a1a1a}
+  .step-label{color:#aaa}
+  .status-box{background:#1a1a1a;border-color:#2a2a2a}
+  .status-title{color:#e8e8e8}
+  .log-block{background:#1a1a1a;border-color:#2a2a2a}
+  pre{background:#111;color:#ccc}
+  .history-card{background:#1a1a1a;border-color:#2a2a2a}
+  .history-name{color:#e8e8e8}
+  .history-item{background:#222;border-color:#2a2a2a}
+  .history-item:hover{background:#2a2a2a}
+  .dl-btn{background:#1a1a1a;border-color:#2a2a2a;color:#e8e8e8}
+  .dl-btn:hover{background:#2a2a2a}
+  .history-dl-btn{background:#2a2a2a;color:#ccc;border-color:#333}
+  .history-dl-btn:hover{background:#333;color:#fff}
+}
 </style>
 </head>
 <body>
@@ -660,7 +705,7 @@ const historyList = document.getElementById('historyList');
 const historyClear = document.getElementById('historyClear');
 
 function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
-function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,10))); }
+function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
 
 function renderHistory(){
   const h = getHistory();
@@ -674,6 +719,7 @@ function renderHistory(){
       <div class="history-info">
         <div class="history-name">\${item.app_name}</div>
         <div class="history-meta">\${item.package_name} · v\${item.version_name}</div>
+        \${item.artifacts && item.artifacts.length ? `<div class=\"history-dl\">\${item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return `<a class=\"history-dl-btn\" href=\"\${WORKER}/download?artifact_id=\${a.id}\" target=\"_blank\" onclick=\"event.stopPropagation()\">\${l}</a>`;}).join('')}</div>` : ''}
       </div>
       <div class="history-use">复用 ›</div>
     </div>
