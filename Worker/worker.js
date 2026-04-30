@@ -275,6 +275,19 @@ footer span{margin:0 8px;opacity:.4}
 .err-detail-title{font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px}
 .err-detail-log{font-size:11px;color:#7f1d1d;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.5}
 
+
+/* ── Toggle Switch ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 0;border-top:1px solid #f0f0f0;margin-top:4px}
+.toggle-label{font-size:13px;font-weight:500;color:#333}
+.toggle-desc{font-size:11px;color:#aaa;margin-top:1px}
+.toggle-switch{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:11px;background:#e0e0e0;cursor:pointer;transition:background .2s}
+.toggle-switch input:checked+.toggle-track{background:#111}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;transition:left .2s}
+.toggle-switch input:checked~.toggle-thumb{left:21px}
+
 /* ── Dark Mode ── */
 @media(prefers-color-scheme:dark){
   body{background:#111;color:#e8e8e8}
@@ -308,6 +321,13 @@ footer span{margin:0 8px;opacity:.4}
   .dl-btn:hover{background:#2a2a2a}
   .history-dl-btn{background:#2a2a2a;color:#ccc;border-color:#333}
   .history-dl-btn:hover{background:#333;color:#fff}
+  .toggle-row{border-top-color:#2a2a2a}
+  .toggle-label{color:#ccc}
+  .toggle-track{background:#333}
+  .toggle-switch input:checked+.toggle-track{background:#e8e8e8}
+  .toggle-thumb{background:#fff}
+  .toggle-switch input:checked~.toggle-thumb{background:#111}
+
 }
 </style>
 </head>
@@ -363,6 +383,17 @@ footer span{margin:0 8px;opacity:.4}
               <img id="iconImg" alt="icon">
             </div>
           </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">禁止截图</div>
+            <div class="toggle-desc">开启后 App 内无法截图/录屏</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="f_no_screenshot">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
         <button type="submit" class="btn" id="submitBtn">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           开始打包
@@ -440,6 +471,7 @@ const dlBtn     = document.getElementById('dlBtn');
 
 let pollTimer = null;
 let busy = false;
+let buildStartTime = 0;
 let currentRunId = null;
 
 function setBusy(v){ busy=v; submitBtn.disabled=v; }
@@ -498,10 +530,12 @@ form.addEventListener('submit', async e => {
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:     document.getElementById('f_icon').value.trim(),
+    icon_url:      document.getElementById('f_icon').value.trim(),
+    no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
   };
 
   setBusy(true);
+  buildStartTime = Date.now();
   showStatus();
   setDot('running');
   setTitle('提交中', '正在触发 GitHub Actions…');
@@ -570,7 +604,10 @@ function startPoll(runId, data){
           // 成功，或者虽然结论异常但 artifacts 存在，都给下载链接
           setStep(2,'done'); setStep(3,'done'); setStep(4,'done');
           setProgress(100); setDot('success');
-          setTitle('打包完成 🎉','APK 已生成，点击下载');
+          const _elapsed = buildStartTime ? Math.round((Date.now()-buildStartTime)/1000) : 0;
+          const _min = Math.floor(_elapsed/60), _sec = _elapsed%60;
+          const _timeStr = _min>0 ? `${_min}分${_sec}秒` : `${_elapsed}秒`;
+          setTitle('打包完成 🎉', `APK 已生成，点击下载 · 耗时 ${_timeStr}`);
           setBusy(false);
           renderDownloadButtons(data, runId);
           addHistory(data);
@@ -611,7 +648,10 @@ async function tryFetchArtifacts(runId, data){
     if(fresh.artifacts?.length || fresh.artifact_id){
       setStep(2,'done'); setStep(3,'done'); setStep(4,'done');
       setProgress(100); setDot('success');
-      setTitle('打包完成 🎉','APK 已生成，点击下载');
+      const _elapsed = buildStartTime ? Math.round((Date.now()-buildStartTime)/1000) : 0;
+          const _min = Math.floor(_elapsed/60), _sec = _elapsed%60;
+          const _timeStr = _min>0 ? `${_min}分${_sec}秒` : `${_elapsed}秒`;
+          setTitle('打包完成 🎉', `APK 已生成，点击下载 · 耗时 ${_timeStr}`);
       setBusy(false);
       renderDownloadButtons(fresh, runId);
       addHistory(fresh);
@@ -715,7 +755,7 @@ function renderHistory(){
       </div>
       <div class="history-info">
         <div class="history-name">\${item.app_name}</div>
-        <div class="history-meta">\${item.package_name} · v\${item.version_name}</div>
+        <div class=\"history-meta\">\${item.package_name} · v\${item.version_name}\${item.elapsed ? ` · ⏱ \${item.elapsed>=60?Math.floor(item.elapsed/60)+'分'+(item.elapsed%60)+'秒':item.elapsed+'秒'}` : ''}</div>
         \${item.artifacts && item.artifacts.length ? `<div class=\"history-dl\">\${item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return `<a class=\"history-dl-btn\" href=\"\${WORKER}/download?artifact_id=\${a.id}\" target=\"_blank\" onclick=\"event.stopPropagation()\">\${l}</a>`;}).join('')}</div>` : ''}
       </div>
       <div class="history-use">复用 ›</div>
@@ -754,6 +794,7 @@ function addHistory(data){
     app_url:      document.getElementById('f_url').value.trim(),
     artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
     ts: Date.now(),
+    elapsed: buildStartTime ? Math.round((Date.now()-buildStartTime)/1000) : 0,
   };
   const h = getHistory().filter(x => x.package_name !== item.package_name);
   h.unshift(item);
@@ -823,7 +864,7 @@ export default {
 };
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_url } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
   if (!app_url || !app_name || !package_name || !version_name || !icon_url)
     return json({ error: 'Missing required fields' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/;
@@ -834,7 +875,7 @@ async function handleBuild(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url }
+        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false' }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
