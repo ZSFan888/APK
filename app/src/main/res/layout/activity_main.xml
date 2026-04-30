@@ -11,7 +11,7 @@
             android:layout_height="match_parent" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- 首屏 overlay：纯 spinner + 正在加载，无图标 -->
+    <!-- 首屏 overlay：logo + spinner + 加载中 -->
     <FrameLayout android:id="@+id/overlay"
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:background="#FFFFFF">
@@ -20,18 +20,31 @@
             android:layout_gravity="center"
             android:orientation="vertical"
             android:gravity="center_horizontal">
+
+            <!-- App Logo -->
+            <ImageView
+                android:layout_width="80dp" android:layout_height="80dp"
+                android:src="@mipmap/ic_launcher"
+                android:contentDescription="@string/app_name"
+                android:scaleType="fitCenter" />
+
+            <!-- Spinner -->
             <ProgressBar
                 style="?android:attr/progressBarStyle"
-                android:layout_width="40dp" android:layout_height="40dp"
+                android:layout_width="36dp" android:layout_height="36dp"
+                android:layout_marginTop="24dp"
                 android:indeterminate="true"
-                android:indeterminateTint="#CCCCCC" />
+                android:indeterminateTint="#666666" />
+
+            <!-- 加载中 -->
             <TextView
                 android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="12dp"
                 android:text="加载中"
                 android:textSize="13sp"
-                android:textColor="#AAAAAA"
+                android:textColor="#666666"
                 android:letterSpacing="0.06" />
+
         </LinearLayout>
     </FrameLayout>
 
