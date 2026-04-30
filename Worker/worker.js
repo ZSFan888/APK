@@ -404,10 +404,7 @@ footer span{margin:0 8px;opacity:.4}
           <svg style="width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><path d="M12 3v13M5 14l7 7 7-7"/><path d="M3 21h18"/></svg>
           下载 APK
         </button>
-        <button class="download-btn" id="copyBtn" style="flex:0 0 auto;background:#f5f5f5;color:#111;border:1px solid #e0e0e0">
-          <svg style="width:15px;height:15px;fill:none;stroke:#333;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-          复制链接
-        </button>
+
       </div>
     </div>
   </div>
