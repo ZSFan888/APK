@@ -21,7 +21,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.JavascriptInterface
 import android.webkit.WebViewClient
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowCompat
@@ -34,22 +33,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var swipeRefresh: SwipeRefreshLayout
     private lateinit var progressBar: TopProgressBar
     private lateinit var overlay: View
-    private lateinit var spinner: IOSSpinnerView
-    private lateinit var loadingText: TextView
 
     private val handler = Handler(Looper.getMainLooper())
     private var overlayVisible = false
     private var isFirstLoad = true
-
-    private val dotsFrames = arrayOf("", ".", "..", "...")
-    private var dotsIndex = 0
-    private val dotsRunnable = object : Runnable {
-        override fun run() {
-            loadingText.text = "加载中${dotsFrames[dotsIndex]}"
-            dotsIndex = (dotsIndex + 1) % dotsFrames.size
-            handler.postDelayed(this, 500)
-        }
-    }
 
     private val timeoutRunnable = Runnable { hideOverlay() }
 
@@ -72,8 +59,6 @@ class MainActivity : AppCompatActivity() {
         webView     = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
         overlay     = findViewById(R.id.overlay)
-        spinner     = findViewById(R.id.spinner)
-        loadingText = findViewById(R.id.loadingText)
         swipeRefresh = findViewById(R.id.swipeRefresh)
         swipeRefresh.setColorSchemeColors(
             android.graphics.Color.parseColor("#6366F1")
@@ -219,9 +204,7 @@ class MainActivity : AppCompatActivity() {
         overlayVisible = true
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
-        progressBar.visibility = View.VISIBLE
         progressBar.setProgress(0)
-        spinner.start()
         dotsIndex = 0
         handler.post(dotsRunnable)
         handler.removeCallbacks(timeoutRunnable)
@@ -231,12 +214,9 @@ class MainActivity : AppCompatActivity() {
     private fun hideOverlay() {
         if (!overlayVisible) return
         handler.removeCallbacks(timeoutRunnable)
-        handler.removeCallbacks(dotsRunnable)
         overlayVisible = false
         overlay.animate().alpha(0f).setDuration(300).withEndAction {
             overlay.visibility = View.GONE
-            spinner.stop()
-            progressBar.visibility = View.GONE
         }.start()
     }
 
