@@ -10,6 +10,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.View
 import android.webkit.CookieManager
 import android.webkit.PermissionRequest
@@ -22,6 +24,8 @@ import android.webkit.WebView
 import android.webkit.JavascriptInterface
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -73,6 +77,7 @@ class MainActivity : AppCompatActivity() {
             webView.reload()
         }
         showOverlay()
+        requestAppPermissions()
         setupWebView()
     }
 
@@ -182,6 +187,56 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {}
             }
         }, "ThemeBridge")
+
+        // ── NativeBridge：供网页调用的原生功能 ──
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun vibrate(ms: Long) {
+                try {
+                    val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                    if (android.os.Build.VERSION.SDK_INT >= 26)
+                        v.vibrate(VibrationEffect.createOneShot(ms.coerceIn(1,2000), VibrationEffect.DEFAULT_AMPLITUDE))
+                    else @Suppress("DEPRECATION") v.vibrate(ms.coerceIn(1,2000))
+                } catch (e: Exception) {}
+            }
+
+            @JavascriptInterface
+            fun share(title: String, text: String, url: String) {
+                runOnUiThread {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TITLE, title)
+                        putExtra(Intent.EXTRA_TEXT, if (url.isNotEmpty()) "$text\n$url" else text)
+                    }
+                    startActivity(Intent.createChooser(intent, title))
+                }
+            }
+
+            @JavascriptInterface
+            fun toast(msg: String) {
+                runOnUiThread {
+                    android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            @JavascriptInterface
+            fun getAppVersion(): String = APP_VERSION
+
+            @JavascriptInterface
+            fun openExternal(url: String) {
+                runOnUiThread {
+                    try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
+                }
+            }
+
+            @JavascriptInterface
+            fun back() {
+                runOnUiThread { if (webView.canGoBack()) webView.goBack() }
+            }
+
+            @JavascriptInterface
+            fun getPermissions(): String = PERMISSIONS_ENABLED
+        }, "NativeBridge")
         webView.loadUrl(APP_URL)
     }
 
@@ -277,6 +332,29 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val APP_URL = "{{APP_URL}}"
+        const val APP_VERSION = "{{VERSION_NAME}}"
+        const val PERMISSIONS_ENABLED = "{{PERMISSIONS}}"
         private const val FILE_CHOOSER_REQUEST = 1001
+        private const val PERMISSION_REQUEST_CODE = 1002
+    }
+
+    private fun requestAppPermissions() {
+        val perms = PERMISSIONS_ENABLED
+        val needed = mutableListOf<String>()
+        if (perms.contains("camera"))     needed.add(android.Manifest.permission.CAMERA)
+        if (perms.contains("microphone")) needed.add(android.Manifest.permission.RECORD_AUDIO)
+        if (perms.contains("location"))   needed.addAll(listOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION))
+        if (perms.contains("storage")) {
+            needed.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (android.os.Build.VERSION.SDK_INT <= 28)
+                needed.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        val toRequest = needed.filter {
+            ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (toRequest.isNotEmpty())
+            ActivityCompat.requestPermissions(this, toRequest.toTypedArray(), PERMISSION_REQUEST_CODE)
     }
 }
