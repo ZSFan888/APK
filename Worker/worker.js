@@ -310,8 +310,8 @@ footer span{margin:0 8px;opacity:.4}
           </div>
           <div class="icon-field">
             <div class="field">
-              <label for="f_icon">图标 URL</label>
-              <input type="url" id="f_icon" placeholder="" required>
+              <label for="f_icon">图标 URL <span style="font-weight:400;color:#bbb;font-size:11px">（可选）</span></label>
+              <input type="url" id="f_icon" placeholder="留空则使用默认 Android 图标">
             </div>
             <div class="icon-preview" id="iconPreview">
               <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
