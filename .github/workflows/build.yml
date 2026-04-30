@@ -18,6 +18,10 @@ on:
       icon_url:
         description: Icon Image URL
         required: true
+      no_screenshot:
+        description: Disable screenshot (true/false)
+        required: false
+        default: 'false'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -65,6 +69,8 @@ jobs:
           sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
           mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
           sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
+          NO_SS="${{ github.event.inputs.no_screenshot }}"
+          sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
 
       - name: Process icon
         env:
