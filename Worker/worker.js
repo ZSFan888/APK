@@ -602,7 +602,7 @@ function renderDownloadButtons(data, runId){
     artifacts.forEach(art => {
       const isArm64   = art.name && /arm64/i.test(art.name);
       const isArmeabi = art.name && /armeabi/i.test(art.name);
-      const label = isArm64 ? 'arm64（主流）' : isArmeabi ? 'armeabi（老设备）' : '下载 APK';
+      const label = isArm64 ? '64 Bit' : isArmeabi ? '32 Bit' : '下载 APK';
       const dlUrl = WORKER+'/download?run_id='+runId+'&artifact_id='+art.id;
       const btn = document.createElement('button');
       btn.className='download-btn show'; btn.style.flex='1';
