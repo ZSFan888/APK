@@ -235,7 +235,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
-            fun getPermissions(): String = PERMISSIONS_ENABLED
+            fun getPermissions(): String = "camera,microphone,location,storage"
         }, "NativeBridge")
         webView.loadUrl(APP_URL)
     }
@@ -333,23 +333,20 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val APP_URL = "{{APP_URL}}"
         const val APP_VERSION = "{{VERSION_NAME}}"
-        const val PERMISSIONS_ENABLED = "{{PERMISSIONS}}"
         private const val FILE_CHOOSER_REQUEST = 1001
         private const val PERMISSION_REQUEST_CODE = 1002
     }
 
     private fun requestAppPermissions() {
-        val perms = PERMISSIONS_ENABLED
-        val needed = mutableListOf<String>()
-        if (perms.contains("camera"))     needed.add(android.Manifest.permission.CAMERA)
-        if (perms.contains("microphone")) needed.add(android.Manifest.permission.RECORD_AUDIO)
-        if (perms.contains("location"))   needed.addAll(listOf(
+        val needed = mutableListOf(
+            android.Manifest.permission.CAMERA,
+            android.Manifest.permission.RECORD_AUDIO,
             android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION))
-        if (perms.contains("storage")) {
-            needed.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        ).apply {
             if (android.os.Build.VERSION.SDK_INT <= 28)
-                needed.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
         val toRequest = needed.filter {
             ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
