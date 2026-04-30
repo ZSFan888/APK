@@ -205,8 +205,6 @@ class MainActivity : AppCompatActivity() {
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
         progressBar.setProgress(0)
-        dotsIndex = 0
-        handler.post(dotsRunnable)
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, 10_000L)
     }
