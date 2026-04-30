@@ -44,6 +44,11 @@ class MainActivity : AppCompatActivity() {
 
     private val timeoutRunnable = Runnable { hideOverlay() }
 
+    // 按需权限：存储待处理的 web 权限请求
+    private var pendingWebPermissionRequest: PermissionRequest? = null
+    private var pendingGeoCallback: android.webkit.GeolocationPermissions.Callback? = null
+    private var pendingGeoOrigin: String? = null
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,7 +82,6 @@ class MainActivity : AppCompatActivity() {
             webView.reload()
         }
         showOverlay()
-        requestAppPermissions()
         setupWebView()
     }
 
@@ -133,7 +137,50 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             override fun onPermissionRequest(request: PermissionRequest) {
-                request.grant(request.resources)
+                val androidPerms = mutableListOf<String>()
+                for (res in request.resources) {
+                    when (res) {
+                        PermissionRequest.RESOURCE_VIDEO_CAPTURE ->
+                            androidPerms.add(android.Manifest.permission.CAMERA)
+                        PermissionRequest.RESOURCE_AUDIO_CAPTURE ->
+                            androidPerms.add(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                }
+                val toRequest = androidPerms.filter {
+                    ContextCompat.checkSelfPermission(this@MainActivity, it) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+                if (toRequest.isEmpty()) {
+                    request.grant(request.resources)
+                } else {
+                    pendingWebPermissionRequest = request
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity, toRequest.toTypedArray(), PERMISSION_REQUEST_CODE
+                    )
+                }
+            }
+
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String,
+                callback: android.webkit.GeolocationPermissions.Callback
+            ) {
+                val perms = arrayOf(
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+                val toRequest = perms.filter {
+                    ContextCompat.checkSelfPermission(this@MainActivity, it) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+                if (toRequest.isEmpty()) {
+                    callback.invoke(origin, true, false)
+                } else {
+                    pendingGeoCallback = callback
+                    pendingGeoOrigin   = origin
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity, toRequest.toTypedArray(), PERMISSION_REQUEST_CODE + 1
+                    )
+                }
             }
             override fun onShowFileChooser(
                 webView: WebView,
@@ -316,6 +363,35 @@ class MainActivity : AppCompatActivity() {
 
     private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            PERMISSION_REQUEST_CODE -> {
+                val req = pendingWebPermissionRequest
+                if (req != null) {
+                    pendingWebPermissionRequest = null
+                    if (grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
+                        req.grant(req.resources)
+                    } else {
+                        req.deny()
+                    }
+                }
+            }
+            PERMISSION_REQUEST_CODE + 1 -> {
+                val cb     = pendingGeoCallback
+                val origin = pendingGeoOrigin
+                pendingGeoCallback = null
+                pendingGeoOrigin   = null
+                if (cb != null && origin != null) {
+                    val granted = grantResults.any { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+                    cb.invoke(origin, granted, false)
+                }
+            }
+        }
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FILE_CHOOSER_REQUEST) {
@@ -334,24 +410,8 @@ class MainActivity : AppCompatActivity() {
         const val APP_URL = "{{APP_URL}}"
         const val APP_VERSION = "{{VERSION_NAME}}"
         private const val FILE_CHOOSER_REQUEST = 1001
-        private const val PERMISSION_REQUEST_CODE = 1002
+        const val PERMISSION_REQUEST_CODE = 1002
     }
 
-    private fun requestAppPermissions() {
-        val needed = mutableListOf(
-            android.Manifest.permission.CAMERA,
-            android.Manifest.permission.RECORD_AUDIO,
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-            android.Manifest.permission.READ_EXTERNAL_STORAGE
-        ).apply {
-            if (android.os.Build.VERSION.SDK_INT <= 28)
-                add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-        val toRequest = needed.filter {
-            ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        }
-        if (toRequest.isNotEmpty())
-            ActivityCompat.requestPermissions(this, toRequest.toTypedArray(), PERMISSION_REQUEST_CODE)
-    }
+
 }
