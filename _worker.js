@@ -603,7 +603,7 @@ function startPoll(runId, data){
         setProgress(Math.min(pct, 95));
         const step = data.current_step || '';
         const si = data.step_index||0, st = data.step_total||5;
-        const stepLabel = st>0 ? ` · 步骤 ${si}/${st}` : '';
+        const stepLabel = st>0 ? ' · 步骤 ' + si + '/' + st : '';
         if(step.includes('Inject') || pct < 20){
           setStep(2,'active'); setTitle('构建中','注入参数 & 处理图标…'+stepLabel);
         } else if(step.includes('Process') || pct < 35){
@@ -625,7 +625,7 @@ function startPoll(runId, data){
           const _elapsed = buildStartTime ? Math.round((Date.now()-buildStartTime)/1000) : 0;
           const _min = Math.floor(_elapsed/60), _sec = _elapsed%60;
           const _timeStr = _min>0 ? _min+'分'+_sec+'秒' : _elapsed+'秒';
-          setTitle('打包完成 🎉', `APK 已生成，点击下载 · 耗时 ${_timeStr}`);
+          setTitle('打包完成 🎉', 'APK 已生成，点击下载 · 耗时 ' + _timeStr);
           setBusy(false);
           renderDownloadButtons(data, runId);
           addHistory(data);
@@ -669,7 +669,7 @@ async function tryFetchArtifacts(runId, data){
       const _elapsed = buildStartTime ? Math.round((Date.now()-buildStartTime)/1000) : 0;
           const _min = Math.floor(_elapsed/60), _sec = _elapsed%60;
           const _timeStr = _min>0 ? _min+'分'+_sec+'秒' : _elapsed+'秒';
-          setTitle('打包完成 🎉', `APK 已生成，点击下载 · 耗时 ${_timeStr}`);
+          setTitle('打包完成 🎉', 'APK 已生成，点击下载 · 耗时 ' + _timeStr);
       setBusy(false);
       renderDownloadButtons(fresh, runId);
       addHistory(fresh);
@@ -774,7 +774,7 @@ function renderHistory(){
       <div class="history-info">
         <div class="history-name">\${item.app_name}</div>
         <div class=\"history-meta\">\${item.package_name} · v\${item.version_name}\${item.elapsed ? ' · ⏱ ' + (item.elapsed>=60 ? Math.floor(item.elapsed/60)+'分'+(item.elapsed%60)+'秒' : item.elapsed+'秒') : ''}</div>
-        \${item.artifacts && item.artifacts.length ? `<div class=\"history-dl\">\${item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return `<a class=\"history-dl-btn\" href=\"\${WORKER}/download?artifact_id=\${a.id}\" target=\"_blank\" onclick=\"event.stopPropagation()\">\${l}</a>`;}).join('')}</div>` : ''}
+        \${item.artifacts && item.artifacts.length ? '<div class=\"history-dl\">' + item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return '<a class=\"history-dl-btn\" href=\"'+WORKER+'/download?artifact_id='+a.id+'\" target=\"_blank\" onclick=\"event.stopPropagation()\">'+l+'</a>';}).join('') + '</div>' : ''}
       </div>
       <div class="history-use">复用 ›</div>
     </div>
