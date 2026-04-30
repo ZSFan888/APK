@@ -757,7 +757,7 @@ function renderHistory(){
   historyList.innerHTML = h.map((item,i) => `
     <div class="history-item" data-idx="${i}">
       <div class="history-icon">
-        ${item.icon_url ? `<img src="${item.icon_url}" onerror="this.style.display='none'">` : ''}
+        ${item.icon_url ? '<img src="' + item.icon_url + '" onerror="this.style.display=\'none\'">' : ''}
       </div>
       <div class="history-info">
         <div class="history-name">${item.app_name}</div>
