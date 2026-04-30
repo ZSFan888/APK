@@ -276,6 +276,20 @@ footer span{margin:0 8px;opacity:.4}
 .err-detail-log{font-size:11px;color:#7f1d1d;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.5}
 
 
+
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.perm-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;
+  border:1px solid #efefef;background:#f9f9f9;
+  cursor:pointer;font-size:13px;color:#333;
+  transition:background .15s,border-color .15s;
+  user-select:none;
+}
+.perm-item:has(input:checked){background:#f0f0f0;border-color:#d0d0d0}
+.perm-item input{width:15px;height:15px;accent-color:#111;flex-shrink:0}
+.perm-icon{font-size:15px}
+
 /* ── Toggle Switch ── */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;
   padding:12px 0;border-top:1px solid #f0f0f0;margin-top:4px}
@@ -327,6 +341,8 @@ footer span{margin:0 8px;opacity:.4}
   .toggle-switch input:checked+.toggle-track{background:#e8e8e8}
   .toggle-thumb{background:#fff}
   .toggle-switch input:checked~.toggle-thumb{background:#111}
+  .perm-item{background:#222;border-color:#2a2a2a;color:#ccc}
+  .perm-item:has(input:checked){background:#2a2a2a;border-color:#444}
 
 }
 </style>
@@ -393,6 +409,32 @@ footer span{margin:0 8px;opacity:.4}
             <span class="toggle-track"></span>
             <span class="toggle-thumb"></span>
           </label>
+        </div>
+
+        <!-- 权限申请 -->
+        <div class="toggle-row" style="flex-direction:column;align-items:flex-start;gap:10px">
+          <div>
+            <div class="toggle-label">申请权限</div>
+            <div class="toggle-desc">勾选 App 需要用到的权限</div>
+          </div>
+          <div class="perm-grid">
+            <label class="perm-item">
+              <input type="checkbox" id="perm_camera" checked>
+              <span class="perm-icon">📷</span><span>相机</span>
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" id="perm_microphone">
+              <span class="perm-icon">🎤</span><span>麦克风</span>
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" id="perm_location">
+              <span class="perm-icon">📍</span><span>位置</span>
+            </label>
+            <label class="perm-item">
+              <input type="checkbox" id="perm_storage" checked>
+              <span class="perm-icon">💾</span><span>存储</span>
+            </label>
+          </div>
         </div>
         <button type="submit" class="btn" id="submitBtn">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -532,6 +574,9 @@ form.addEventListener('submit', async e => {
     version_name: document.getElementById('f_ver').value.trim(),
     icon_url:      document.getElementById('f_icon').value.trim(),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
+    permissions: ['camera','microphone','location','storage']
+      .filter(p => document.getElementById('perm_'+p)?.checked)
+      .join(',') || 'none',
   };
 
   setBusy(true);
@@ -864,7 +909,7 @@ export default {
 };
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot, permissions } = await request.json();
   if (!app_url || !app_name || !package_name || !version_name || !icon_url)
     return json({ error: 'Missing required fields' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/;
@@ -875,7 +920,7 @@ async function handleBuild(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false' }
+        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false', permissions: permissions||'camera,storage' }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
