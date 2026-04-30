@@ -399,17 +399,6 @@ footer span{margin:0 8px;opacity:.4}
               <img id="iconImg" alt="icon">
             </div>
           </div>
-        <div class="toggle-row">
-          <div>
-            <div class="toggle-label">禁止截图</div>
-            <div class="toggle-desc">开启后 App 内无法截图/录屏</div>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="f_no_screenshot">
-            <span class="toggle-track"></span>
-            <span class="toggle-thumb"></span>
-          </label>
-        </div>
 
         <!-- 权限申请 -->
         <div class="toggle-row" style="flex-direction:column;align-items:flex-start;gap:10px">
@@ -573,7 +562,7 @@ form.addEventListener('submit', async e => {
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
     icon_url:      document.getElementById('f_icon').value.trim(),
-    no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
+    no_screenshot: 'false',
     permissions: ['camera','microphone','location','storage']
       .filter(p => document.getElementById('perm_'+p)?.checked)
       .join(',') || 'none',
