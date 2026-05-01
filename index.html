@@ -621,7 +621,6 @@ function startPoll(runId, data){
           setBusy(false);
           renderDownloadButtons(data, runId);
           addHistory(data);
-          fetchLogs(runId, data.job_id);
         } else if(data.conclusion === 'failure'){
           setStep(4,'fail');
           const failStep = data.failed_step ? `步骤「${data.failed_step}」失败` : '构建失败';
