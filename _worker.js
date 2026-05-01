@@ -250,8 +250,8 @@ async function extractApkFromZip(buf) {
   return null;
 }
 
-const gh = (env, path, opts = {}) =>
-  fetch(`https://api.github.com${path}`, {
+function gh(env, path, opts = {}) {
+  return fetch(`https://api.github.com${path}`, {
     ...opts,
     headers: {
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
@@ -262,16 +262,15 @@ const gh = (env, path, opts = {}) =>
       ...(opts.headers || {}),
     }
   });
+}
 
-const json  = (d, s = 200) => new Response(JSON.stringify(d), {
-  status: s, headers: { 'Content-Type': 'application/json' }
-});
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-const cors  = (res, env) => {
+function json(d, s = 200) { return new Response(JSON.stringify(d), { status: s, headers: { 'Content-Type': 'application/json' } }); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function cors(res, env) {
   const h = new Headers(res.headers);
   h.set('Access-Control-Allow-Origin',  '*');
   h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   h.set('Access-Control-Allow-Headers', 'Content-Type');
   return new Response(res.body, { status: res.status, headers: h });
-};
+}
 // force-redeploy: 1777597096
