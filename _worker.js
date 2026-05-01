@@ -1,3 +1,5 @@
+const GH = 'https://api.github.com';
+
 
 export default {
   async fetch(request, env) {
