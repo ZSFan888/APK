@@ -29,7 +29,7 @@ async function handleBuild(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url, no_screenshot: no_screenshot||'false' }
+        inputs: { app_url, app_name, package_name, version_name, icon_url: icon_url || 'https://apk.091224.xyz/logo.jpg', no_screenshot: no_screenshot||'false' }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
