@@ -512,6 +512,8 @@ const dlBtn     = document.getElementById('dlBtn');
 
 let pollTimer = null;
 let logTimer  = null;
+let logLines  = [];
+function resetLogs(){ logLines=[]; clearInterval(logTimer); logTimer=null; const p=document.getElementById("logPanel"); if(p){p.style.display="none";} const pre=document.getElementById("logContent"); if(pre){pre.textContent="";} const dot=document.getElementById("logDot"); if(dot)dot.className="log-dot"; }
 let busy = false;
 let buildStartTime = 0;
 let currentRunId = null;
@@ -853,8 +855,6 @@ function addHistory(data){
 renderHistory();
 
 /* ── 日志实时流 ── */
-let logLines = [];
-function resetLogs(){ logLines=[]; clearInterval(logTimer); logTimer=null; const p=document.getElementById("logPanel"); if(p){p.style.display="none";} const pre=document.getElementById("logContent"); if(pre){pre.textContent="";} const dot=document.getElementById("logDot"); if(dot)dot.className="log-dot"; }
 /* toggleLog removed - log panel always visible */
 async function fetchLogs(runId, jobId, isDone){
   if(!runId) return;
