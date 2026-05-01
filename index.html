@@ -445,7 +445,6 @@ footer span{margin:0 8px;opacity:.4}
         </button>
 
       </div>
-        <pre class="log-body" id="logContent"></pre>
       </div>
     </div>
   </div>
@@ -705,6 +704,7 @@ function renderDownloadButtons(data, runId){
   dlActions.style.display='flex';
 }
 
+const SAVE_KEYS = ['f_url','f_name','f_pkg','f_ver','f_icon'];
 function saveForm(){
   const saved = {};
   SAVE_KEYS.forEach(id => { saved[id] = document.getElementById(id).value; });
@@ -740,7 +740,7 @@ loadForm();
     hint.style.display = msg ? 'block' : 'none';
   }
 
-  function tryFetch(url){
+  function fetchPageTitle(url){
     if(!url || url === lastUrl) return;
     if(!/^https?:\/\/.{4}/.test(url)) return;
     setHint('⏳ 正在识别网站名称…');
@@ -779,12 +779,12 @@ loadForm();
 
   urlInput.addEventListener('paste', function(){
     clearTimeout(timer);
-    timer = setTimeout(function(){ tryFetch(urlInput.value.trim()); }, 400);
+    timer = setTimeout(function(){ fetchPageTitle(urlInput.value.trim()); }, 400);
   });
 
   urlInput.addEventListener('blur', function(){
     clearTimeout(timer);
-    tryFetch(urlInput.value.trim());
+    fetchPageTitle(urlInput.value.trim());
   });
 })();
 
