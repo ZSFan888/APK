@@ -511,6 +511,7 @@ const errBox    = document.getElementById('errBox');
 const dlBtn     = document.getElementById('dlBtn');
 
 let pollTimer = null;
+let logTimer  = null;
 let busy = false;
 let buildStartTime = 0;
 let currentRunId = null;
@@ -638,7 +639,10 @@ function startPoll(runId, data){
         } else {
           setStep(3,'done'); setStep(4,'active'); setTitle('签名中','正在签名打包…'+stepLabel);
         }
-        fetchLogs(runId, data.job_id);
+        // 日志独立定时器：1 秒刷新一次
+        if(!logTimer){
+          logTimer = setInterval(()=>fetchLogs(runId, data.job_id, false), 1000);
+        }
       }
 
       if(data.status === 'completed'){
@@ -666,6 +670,7 @@ function startPoll(runId, data){
             detail.innerHTML = `<div class="err-detail-title">错误日志</div><div class="err-detail-log">${data.failed_log.replace(/</g,'&lt;')}</div>`;
             box.appendChild(detail);
           }
+          clearInterval(logTimer); logTimer=null;
           setBusy(false);
         } else {
           // cancelled / timed_out 等，尝试拿 artifacts
@@ -849,7 +854,7 @@ renderHistory();
 
 /* ── 日志实时流 ── */
 let logLines = [];
-function resetLogs(){ logLines=[]; const p=document.getElementById("logPanel"); if(p){p.style.display="none";} const pre=document.getElementById("logContent"); if(pre){pre.textContent="";} const dot=document.getElementById("logDot"); if(dot)dot.className="log-dot"; }
+function resetLogs(){ logLines=[]; clearInterval(logTimer); logTimer=null; const p=document.getElementById("logPanel"); if(p){p.style.display="none";} const pre=document.getElementById("logContent"); if(pre){pre.textContent="";} const dot=document.getElementById("logDot"); if(dot)dot.className="log-dot"; }
 /* toggleLog removed - log panel always visible */
 async function fetchLogs(runId, jobId, isDone){
   if(!runId) return;
