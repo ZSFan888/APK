@@ -19,7 +19,7 @@ export default {
 
 async function handleBuild(request, env) {
   const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
-  if (!app_url || !app_name || !package_name || !version_name || !icon_url)
+  if (!app_url || !app_name || !package_name || !version_name)
     return json({ error: 'Missing required fields' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/;
   if (!pkgRe.test(package_name))
