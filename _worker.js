@@ -1,6 +1,3 @@
-const GH = 'https://api.github.com';
-
-
 export default {
   async fetch(request, env) {
 
@@ -254,7 +251,7 @@ async function extractApkFromZip(buf) {
 }
 
 const gh = (env, path, opts = {}) =>
-  fetch(`${GH}${path}`, {
+  fetch(`https://api.github.com${path}`, {
     ...opts,
     headers: {
       Authorization: `Bearer ${env.GITHUB_TOKEN}`,
@@ -277,3 +274,4 @@ const cors  = (res, env) => {
   h.set('Access-Control-Allow-Headers', 'Content-Type');
   return new Response(res.body, { status: res.status, headers: h });
 };
+// force-redeploy: 1777597096
