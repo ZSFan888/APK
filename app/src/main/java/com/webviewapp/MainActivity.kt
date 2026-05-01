@@ -161,38 +161,39 @@ class MainActivity : AppCompatActivity() {
 
     private fun inspectBlankPage(view: WebView, url: String) {
         if (isShowingError) return
-        view.postVisualStateCallback(System.currentTimeMillis()) {
-            view.evaluateJavascript(
-                """
-                (function(){
-                  try{
-                    var body=document.body;
-                    var text=(body&&body.innerText?body.innerText:'').trim();
-                    var html=(document.documentElement&&document.documentElement.outerHTML?document.documentElement.outerHTML:'');
-                    var bg=window.getComputedStyle(document.body||document.documentElement).backgroundColor||'';
-                    return JSON.stringify({
-                      textLength:text.length,
-                      htmlLength:html.length,
-                      title:document.title||'',
-                      bg:bg
-                    });
-                  }catch(e){
-                    return JSON.stringify({error:String(e)});
-                  }
-                })();
-                """.trimIndent()
-            ) { raw ->
-                val payload = raw.orEmpty()
-                val looksBlank = payload.contains(""textLength":0") && !payload.contains(""htmlLength":0")
-                val jsError = lastConsoleError
-                if (!isShowingError && (looksBlank || !jsError.isNullOrBlank())) {
-                    val detail = jsError ?: "页面内容为空或未渲染完成"
-                    showBlankPageError(url, detail)
+        view.postVisualStateCallback(System.currentTimeMillis(), object : WebView.VisualStateCallback() {
+            override fun onComplete(requestId: Long) {
+                view.evaluateJavascript(
+                    """
+                    (function(){
+                      try{
+                        var body=document.body;
+                        var text=(body&&body.innerText?body.innerText:'').trim();
+                        var html=(document.documentElement&&document.documentElement.outerHTML?document.documentElement.outerHTML:'');
+                        var bg=window.getComputedStyle(document.body||document.documentElement).backgroundColor||'';
+                        return JSON.stringify({
+                          textLength:text.length,
+                          htmlLength:html.length,
+                          title:document.title||'',
+                          bg:bg
+                        });
+                      }catch(e){
+                        return JSON.stringify({error:String(e)});
+                      }
+                    })();
+                    """.trimIndent(),
+                ) { raw ->
+                    val payload = raw.orEmpty()
+                    val looksBlank = payload.contains("\"textLength\":0") && !payload.contains("\"htmlLength\":0")
+                    val jsError = lastConsoleError
+                    if (!isShowingError && (looksBlank || !jsError.isNullOrBlank())) {
+                        val detail = jsError ?: "页面内容为空或未渲染完成"
+                        showBlankPageError(url, detail)
+                    }
                 }
             }
-        }
+        })
     }
-
     private fun showBlockedBySitePage(url: String, reason: String) {
         hideOverlay()
         handler.removeCallbacks(renderTimeoutRunnable)
@@ -201,8 +202,8 @@ class MainActivity : AppCompatActivity() {
         failedUrl = url
         lastBlockedHint = reason
         swipeRefresh.isRefreshing = false
-        val safeUrl = url.replace("'", "&#39;")
-        val safeReason = reason.replace("'", "&#39;")
+        val safeUrl = url.replace("&", "&amp;").replace("<", "&lt;").replace("'", "&#39;")
+        val safeReason = reason.replace("&", "&amp;").replace("<", "&lt;").replace("'", "&#39;")
         val html = """
             <!doctype html>
             <html lang="zh-CN">
@@ -226,10 +227,10 @@ class MainActivity : AppCompatActivity() {
                 <div class="card">
                     <h1>该网站可能限制 WebView 打开</h1>
                     <p>这个网站在当前 App 内置浏览环境中未正常显示，常见原因包括登录风控、OAuth 限制、支付安全策略，或网站主动禁止 WebView。</p>
-                    <p>检测结果：""" + safeReason + """</p>
-                    <p class="url">""" + safeUrl + """</p>
+                    <p>检测结果：${safeReason}</p>
+                    <p class="url">${safeUrl}</p>
                     <div class="actions">
-                        <button class="primary" onclick="Android.openExternal('""" + safeUrl + """')">在系统浏览器打开</button>
+                        <button class="primary" onclick="if(window.NativeBridge){NativeBridge.openExternal('${safeUrl}')}else{window.location.href='${safeUrl}'}">在系统浏览器打开</button>
                         <button class="secondary" onclick="location.reload()">重试</button>
                     </div>
                 </div>
@@ -238,7 +239,6 @@ class MainActivity : AppCompatActivity() {
         """.trimIndent()
         webView.loadDataWithBaseURL(url, html, "text/html", "UTF-8", url)
     }
-
     private fun looksLikeWebViewBlocked(url: String, title: String?, html: String?): String? {
         val target = listOf(url, title.orEmpty(), html.orEmpty()).joinToString("\n")
             .lowercase()
@@ -305,12 +305,13 @@ class MainActivity : AppCompatActivity() {
                 if (!isShowingError) {
                     view.evaluateJavascript("(function(){try{return document.documentElement.outerHTML.slice(0,4000)}catch(e){return ''}})();") { raw ->
                         val html = raw
-                            ?.removePrefix("\"")
-                            ?.removeSuffix("\"")
+                            ?.removePrefix(""")
+                            ?.removeSuffix(""")
                             ?.replace("\u003C", "<")
                             ?.replace("\u003E", ">")
-                            ?.replace("\n", "\n")
-                            ?.replace("\\"", "\"")
+                            ?.replace("\n", "
+")
+                            ?.replace("\"", """)
                         val hint = looksLikeWebViewBlocked(url, view.title, html)
                         if (!hint.isNullOrBlank() && !isShowingError) {
                             showBlockedBySitePage(url, hint)
@@ -637,8 +638,8 @@ class MainActivity : AppCompatActivity() {
 <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,sans-serif;flex-direction:column;background:#fff;color:#1a1a1a;padding:32px;box-sizing:border-box;text-align:center;">
 <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom:8px;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M4.93 4.93l14.14 14.14"/></svg>
 <p style="margin:12px 0 6px;font-size:17px;font-weight:600;color:#111;">网页加载失败</p>
-<p style="margin:0 0 28px;font-size:13px;color:#888;max-width:260px;line-height:1.6">${"$"}{safeDesc}</p>
-<button onclick="if(window.NativeBridge){NativeBridge.reload()}else{window.location.href='${"$"}{safeUrl}'}" style="padding:13px 36px;border:none;border-radius:999px;background:#111;color:#fff;font-size:15px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:500;-webkit-tap-highlight-color:transparent;active:opacity:.8">重试</button>
+<p style="margin:0 0 28px;font-size:13px;color:#888;max-width:260px;line-height:1.6">${safeDesc}</p>
+<button onclick="if(window.NativeBridge){NativeBridge.reload()}else{window.location.href='${safeUrl}'}" style="padding:13px 36px;border:none;border-radius:999px;background:#111;color:#fff;font-size:15px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:500;-webkit-tap-highlight-color:transparent;active:opacity:.8">重试</button>
 </body></html>""".trimIndent()
     }
     private var backPressedTime = 0L
