@@ -240,8 +240,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun looksLikeWebViewBlocked(url: String, title: String?, html: String?): String? {
-        val target = listOf(url, title.orEmpty(), html.orEmpty()).joinToString("
-").lowercase()
+        val target = listOf(url, title.orEmpty(), html.orEmpty()).joinToString("\n")
+            .lowercase()
         val patterns = listOf(
             "disallowed_useragent" to "检测到 OAuth / 登录流程禁止嵌入式浏览器",
             "unsupported-browser" to "网站提示当前内置浏览器不受支持",
@@ -255,7 +255,6 @@ class MainActivity : AppCompatActivity() {
         )
         return patterns.firstOrNull { target.contains(it.first) }?.second
     }
-
     private fun showWebErrorPage(url: String, message: String) {
         hideOverlay()
         handler.removeCallbacks(renderTimeoutRunnable)
@@ -306,13 +305,12 @@ class MainActivity : AppCompatActivity() {
                 if (!isShowingError) {
                     view.evaluateJavascript("(function(){try{return document.documentElement.outerHTML.slice(0,4000)}catch(e){return ''}})();") { raw ->
                         val html = raw
-                            ?.removePrefix(""")
-                            ?.removeSuffix(""")
+                            ?.removePrefix("\"")
+                            ?.removeSuffix("\"")
                             ?.replace("\u003C", "<")
                             ?.replace("\u003E", ">")
-                            ?.replace("\n", "
-")
-                            ?.replace("\"", """)
+                            ?.replace("\n", "\n")
+                            ?.replace("\\"", "\"")
                         val hint = looksLikeWebViewBlocked(url, view.title, html)
                         if (!hint.isNullOrBlank() && !isShowingError) {
                             showBlockedBySitePage(url, hint)
@@ -323,7 +321,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-
             override fun onPageCommitVisible(view: WebView, url: String) {
                 pageVisibleCommitted = true
                 handler.removeCallbacks(renderTimeoutRunnable)
@@ -644,7 +641,6 @@ class MainActivity : AppCompatActivity() {
 <button onclick="if(window.NativeBridge){NativeBridge.reload()}else{window.location.href='${"$"}{safeUrl}'}" style="padding:13px 36px;border:none;border-radius:999px;background:#111;color:#fff;font-size:15px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:500;-webkit-tap-highlight-color:transparent;active:opacity:.8">重试</button>
 </body></html>""".trimIndent()
     }
-
     private var backPressedTime = 0L
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
