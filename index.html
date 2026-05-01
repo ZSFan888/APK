@@ -694,7 +694,7 @@ function renderDownloadButtons(data, runId){
       const dlUrl = WORKER+'/download?run_id='+runId+'&artifact_id='+art.id;
       const btn = document.createElement('button');
       btn.className='download-btn show'; btn.style.flex='1';
-      btn.innerHTML=DL_ICO+' ↓ '+label;
+      btn.innerHTML=DL_ICO+' '+label;
       btn.onclick=()=>{ window.location.href=dlUrl; };
       dlActions.appendChild(btn);
     });
