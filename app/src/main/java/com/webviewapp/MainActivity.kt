@@ -662,8 +662,7 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() { super.onPause(); CookieManager.getInstance().flush() }
     override fun onDestroy() { handler.removeCallbacksAndMessages(null); webView.destroy(); super.onDestroy() }
 
-    private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
-
+    
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
     ) {
@@ -850,17 +849,9 @@ class MainActivity : AppCompatActivity() {
         return perms.toTypedArray()
     }
 
-    private fun createImageFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val storageDir = File(cacheDir, "webview_uploads").apply { if (!exists()) mkdirs() }
-        return File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
-    }
+    
 
-    private fun createVideoFile(): File {
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-        val storageDir = File(cacheDir, "webview_uploads").apply { if (!exists()) mkdirs() }
-        return File.createTempFile("VIDEO_${timeStamp}_", ".mp4", storageDir)
-    }
+    
 
     companion object {
         const val APP_URL = "{{APP_URL}}"
