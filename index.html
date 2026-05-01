@@ -408,7 +408,7 @@ footer span{margin:0 8px;opacity:.4}
           <div class="icon-field">
             <div class="field">
               <label for="f_icon">图标 URL <span style="font-weight:400;color:#bbb;font-size:11px">（可选）</span></label>
-              <input type="url" id="f_icon" placeholder="留空则使用默认 Android 图标">
+              <input type="url" id="f_icon" placeholder="留空则自动使用 /logo.jpg">
             </div>
             <div class="icon-preview" id="iconPreview">
               <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -574,7 +574,7 @@ form.addEventListener('submit', async e => {
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:      document.getElementById('f_icon').value.trim(),
+    icon_url:      document.getElementById('f_icon').value.trim() || (location.origin + '/logo.jpg'),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
 
   };
@@ -841,7 +841,7 @@ function addHistory(data){
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:     document.getElementById('f_icon').value.trim(),
+    icon_url:     document.getElementById('f_icon').value.trim() || (location.origin + '/logo.jpg'),
     app_url:      document.getElementById('f_url').value.trim(),
     artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
     ts: Date.now(),
