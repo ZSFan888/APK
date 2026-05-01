@@ -366,7 +366,7 @@ footer span{margin:0 8px;opacity:.4}
         <div class="field">
           <label for="f_url">目标网址</label>
           <input type="url" id="f_url" placeholder="https://example.com" autocomplete="off" required>
-              <span id="urlFetchHint" style="display:none;font-size:11px;color:#888;margin-top:4px;display:none"></span>
+              <span id="urlFetchHint" style="display:none;font-size:11px;color:#888;margin-top:4px;"></span>
         </div>
         <div class="field">
           <label for="f_name">App 名称</label>
@@ -736,7 +736,7 @@ loadForm();
     if(!hint) return;
     hint.textContent = msg;
     hint.style.color = color || '#888';
-    hint.style.display = msg ? 'block' : 'none';
+    hint.style.display = msg ? 'inline-block' : 'none';
   }
 
   async function fetchTitle(url){
