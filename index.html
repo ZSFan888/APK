@@ -218,12 +218,28 @@ footer span{margin:0 8px;opacity:.4}
 .icon-preview img{width:100%;height:100%;object-fit:cover;display:none}
 .icon-preview-placeholder{width:20px;height:20px;opacity:.25}
 
-/* ── History Card ── */
-.history-card{
-  background:#fff;border:1px solid #e8e8e8;border-radius:16px;padding:20px;
-  box-shadow:0 4px 24px rgba(0,0,0,0.06);margin-top:16px;display:none;
+
+/* ── History 浮动面板 ── */
+.history-nav-btn{background:none;border:none;cursor:pointer;color:inherit;padding:0;display:flex;align-items:center}
+#historyOverlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.15);backdrop-filter:blur(2px)}
+#historyPanel{
+  position:fixed;top:0;right:0;bottom:0;width:320px;max-width:92vw;
+  background:#fff;z-index:1000;box-shadow:-4px 0 32px rgba(0,0,0,0.12);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(0.32,0,0.15,1);
+  overflow:hidden;
 }
-.history-card.show{display:block}
+#historyPanel.open{transform:translateX(0)}
+#historyOverlay.open{display:block}
+.history-panel-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px 14px;border-bottom:1px solid #f0f0f0;
+  font-size:13px;font-weight:700;color:#111;flex-shrink:0;
+}
+#historyPanel .history-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+/* ── History Card ── */
+.history-card{display:none}
+
 .history-title{
   font-size:12px;font-weight:600;color:#888;
   text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;
@@ -322,7 +338,7 @@ footer span{margin:0 8px;opacity:.4}
   .status-title{color:#e8e8e8}
   
   pre{background:#111;color:#ccc}
-  .history-card{background:#1a1a1a;border-color:#2a2a2a}
+  #historyPanel{background:#1a1a1a}.history-panel-head{border-color:#2a2a2a;color:#e8e8e8}
   .history-name{color:#e8e8e8}
   .history-item{background:#222;border-color:#2a2a2a}
   .history-item:hover{background:#2a2a2a}
@@ -351,12 +367,33 @@ footer span{margin:0 8px;opacity:.4}
     </div>
     Pakr
   </a>
+  <button id="historyBtn" class="nav-badge history-nav-btn" title="打包历史" onclick="toggleHistoryPanel()">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </button>
   <a href="https://github.com/ZhangShengFan/Pakr" target="_blank" class="nav-badge github-link" title="GitHub">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
     </svg>
   </a>
 </nav>
+
+<!-- 历史记录浮动面板 -->
+<div id="historyOverlay" onclick="toggleHistoryPanel()"></div>
+<div id="historyPanel">
+  <div class="history-panel-head">
+    <span>打包历史</span>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="history-clear" id="historyClear">清空</span>
+      <button onclick="toggleHistoryPanel()" style="background:none;border:none;cursor:pointer;color:#999;padding:0;display:flex">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="history-list" id="historyList"></div>
+  <div id="historyEmpty" style="display:none;text-align:center;padding:32px 0;color:#bbb;font-size:13px">暂无打包记录</div>
+</div>
 
 
 <div class="content">
@@ -454,14 +491,7 @@ footer span{margin:0 8px;opacity:.4}
     </div>
   </div>
 
-    <!-- 打包历史 -->
-    <div class="history-card" id="historyCard">
-      <div class="history-title">
-        打包历史
-        <span class="history-clear" id="historyClear">清空</span>
-      </div>
-      <div class="history-list" id="historyList"></div>
-    </div>
+
   </div>
 
 
@@ -826,7 +856,16 @@ iconInput.addEventListener('input', () => {
 
 /* ── 打包历史 ── */
 const HISTORY_KEY = 'apkbuilder_history';
-const historyCard = document.getElementById('historyCard');
+
+function toggleHistoryPanel(){
+  const panel   = document.getElementById('historyPanel');
+  const overlay = document.getElementById('historyOverlay');
+  const isOpen  = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  overlay.classList.toggle('open', !isOpen);
+}
+
+const historyCard = null; // moved to panel
 const historyList = document.getElementById('historyList');
 const historyClear = document.getElementById('historyClear');
 
@@ -835,8 +874,9 @@ function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slic
 
 function renderHistory(){
   const h = getHistory();
-  if(!h.length){ historyCard.classList.remove('show'); return; }
-  historyCard.classList.add('show');
+  const emptyEl = document.getElementById('historyEmpty');
+  if(emptyEl) emptyEl.style.display = h.length ? 'none' : 'block';
+  if(!h.length){ document.getElementById('historyList').innerHTML=''; return; }
   historyList.innerHTML = h.map((item,i) => `
     <div class="history-item" data-idx="${i}">
       <div class="history-icon">
