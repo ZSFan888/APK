@@ -609,6 +609,10 @@ form.addEventListener('submit', async e => {
 
 function startPoll(runId, data){
   resetLogs();
+  // 立即显示日志面板，1 秒开始拉日志
+  const logPanel = document.getElementById('logPanel');
+  if(logPanel) logPanel.style.display='block';
+  logTimer = setInterval(()=>fetchLogs(runId, null, false), 1000);
   let elapsed = 0;
   const MAX_WAIT = 900; // 最长等 15 分钟
   currentRunId = runId;
@@ -641,10 +645,7 @@ function startPoll(runId, data){
         } else {
           setStep(3,'done'); setStep(4,'active'); setTitle('签名中','正在签名打包…'+stepLabel);
         }
-        // 日志独立定时器：1 秒刷新一次
-        if(!logTimer){
-          logTimer = setInterval(()=>fetchLogs(runId, data.job_id, false), 1000);
-        }
+        // 日志定时器已在 startPoll 入口启动
       }
 
       if(data.status === 'completed'){
