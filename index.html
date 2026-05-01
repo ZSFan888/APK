@@ -246,6 +246,11 @@ footer span{margin:0 8px;opacity:.4}
 .history-info{flex:1;min-width:0}
 .history-name{font-size:13px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-meta{font-size:11px;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ── CSS 时钟图标 ── */
+.css-clock{display:inline-block;width:11px;height:11px;border:1.5px solid currentColor;border-radius:50%;position:relative;vertical-align:middle;margin-right:2px;flex-shrink:0}
+.css-clock::before{content:'';position:absolute;width:1.5px;height:3.5px;background:currentColor;left:50%;top:50%;transform:translate(-50%,-100%) rotate(0deg);transform-origin:50% 100%;border-radius:1px}
+.css-clock::after{content:'';position:absolute;width:1.5px;height:2.5px;background:currentColor;left:50%;top:50%;transform:translate(-50%,-100%) rotate(90deg);transform-origin:50% 100%;border-radius:1px}
+
 .history-use{font-size:11px;color:#888;flex-shrink:0}
 .history-dl{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
 .history-dl-btn{
@@ -839,7 +844,7 @@ function renderHistory(){
       </div>
       <div class="history-info">
         <div class="history-name">${item.app_name}</div>
-        <div class=\"history-meta\">${item.package_name} · v${item.version_name}${item.elapsed ? ' · ⏱ ' + (item.elapsed>=60 ? Math.floor(item.elapsed/60)+'分'+(item.elapsed%60)+'秒' : item.elapsed+'秒') : ''}</div>
+        <div class=\"history-meta\">${item.package_name} · v${item.version_name}${item.elapsed ? ' · <span class="css-clock"></span>' + (item.elapsed>=60 ? Math.floor(item.elapsed/60)+'分'+(item.elapsed%60)+'秒' : item.elapsed+'秒') : ''}</div>
         ${item.artifacts && item.artifacts.length ? '<div class=\"history-dl\">' + item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return '<a class=\"history-dl-btn\" href=\"'+WORKER+'/download?artifact_id='+a.id+'\" target=\"_blank\" onclick=\"event.stopPropagation()\">'+l+'</a>';}).join('') + '</div>' : ''}
       </div>
       <div class="history-use">复用 ›</div>
