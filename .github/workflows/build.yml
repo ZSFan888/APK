@@ -17,7 +17,8 @@ on:
         default: 1.0.0
       icon_url:
         description: Icon Image URL
-        required: true
+        required: false
+        default: ''
       no_screenshot:
         description: Disable screenshot (true/false)
         required: false
