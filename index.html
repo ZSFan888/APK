@@ -340,7 +340,7 @@ footer span{margin:0 8px;opacity:.4}
 <body>
 
 <nav>
-  <a href="#" class="nav-logo">
+  <a href="javascript:void(0)" class="nav-logo">
     <div class="nav-logo-icon">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
     </div>
@@ -362,7 +362,7 @@ footer span{margin:0 8px;opacity:.4}
       <div class="card-title">
         填写应用信息
       </div>
-      <form class="form" id="form" novalidate>
+      <form class="form" id="form" novalidate onsubmit="return false">
         <div class="field">
           <label for="f_url">目标网址</label>
           <input type="url" id="f_url" placeholder="https://example.com" autocomplete="off" required>
@@ -530,10 +530,11 @@ function validate(){
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
+  e.stopPropagation();
   if(busy) return;
   errBox.classList.remove('show');
   dlBtn.classList.remove('show');
-  if(!validate()) return;
+  if(!validate()) return false;
 
   const data = {
     app_url:      document.getElementById('f_url').value.trim(),
