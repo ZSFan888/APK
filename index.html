@@ -362,7 +362,7 @@ footer span{margin:0 8px;opacity:.4}
       <div class="card-title">
         填写应用信息
       </div>
-      <form class="form" id="form" novalidate onsubmit="return false">
+      <form class="form" id="form" novalidate>
         <div class="field">
           <label for="f_url">目标网址</label>
           <input type="url" id="f_url" placeholder="https://example.com" autocomplete="off" required>
@@ -402,7 +402,7 @@ footer span{margin:0 8px;opacity:.4}
             <span class="toggle-thumb"></span>
           </label>
         </div>
-        <button type="submit" class="btn" id="submitBtn">
+        <button type="button" class="btn" id="submitBtn" onclick="handleBuildClick()">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           开始打包
         </button>
@@ -528,13 +528,12 @@ function validate(){
   return ok;
 }
 
-form.addEventListener('submit', async e => {
-  e.preventDefault();
-  e.stopPropagation();
+async function handleBuildClick(){
+  const e = { preventDefault:()=>{} };
   if(busy) return;
   errBox.classList.remove('show');
   dlBtn.classList.remove('show');
-  if(!validate()) return false;
+  if(!validate()) return;
 
   const data = {
     app_url:      document.getElementById('f_url').value.trim(),
@@ -572,7 +571,7 @@ form.addEventListener('submit', async e => {
       : err.message;
     showErr(msg);
   }
-});
+}
 
 function startPoll(runId, data){
   let elapsed = 0;
