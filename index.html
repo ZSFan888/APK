@@ -574,7 +574,7 @@ form.addEventListener('submit', async e => {
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:      document.getElementById('f_icon').value.trim() || (location.origin + '/logo.jpg'),
+    icon_url:      document.getElementById('f_icon').value.trim(),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
 
   };
@@ -758,7 +758,7 @@ function loadForm(){
     SAVE_KEYS.forEach(id => {
       if(saved[id]) document.getElementById(id).value = saved[id];
     });
-    if(saved['f_icon']) triggerIconPreview(saved['f_icon']);
+    triggerIconPreview(saved['f_icon'] || '');
   } catch(e){}
 }
 SAVE_KEYS.forEach(id => {
@@ -773,17 +773,25 @@ const iconPreview = document.getElementById('iconPreview');
 let iconTimer = null;
 
 function triggerIconPreview(url){
-  if(!url) return;
+  const previewUrl = url || '/logo.jpg';
+  const placeholder = iconPreview.querySelector('svg');
   iconImg.style.display = 'none';
   const tmp = new Image();
-  tmp.onload  = () => { iconImg.src = url; iconImg.style.display = 'block'; };
-  tmp.onerror = () => { iconImg.style.display = 'none'; };
-  tmp.src = url;
+  tmp.onload  = () => {
+    iconImg.src = previewUrl;
+    iconImg.style.display = 'block';
+    if(placeholder) placeholder.style.display = 'none';
+  };
+  tmp.onerror = () => {
+    iconImg.style.display = 'none';
+    if(placeholder) placeholder.style.display = '';
+  };
+  tmp.src = previewUrl;
 }
 
 iconInput.addEventListener('input', () => {
   clearTimeout(iconTimer);
-  iconTimer = setTimeout(() => triggerIconPreview(iconInput.value.trim()), 600);
+  iconTimer = setTimeout(() => triggerIconPreview(iconInput.value.trim()), 400);
 });
 
 /* ── 打包历史 ── */
@@ -841,7 +849,7 @@ function addHistory(data){
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:     document.getElementById('f_icon').value.trim() || (location.origin + '/logo.jpg'),
+    icon_url:     document.getElementById('f_icon').value.trim(),
     app_url:      document.getElementById('f_url').value.trim(),
     artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
     ts: Date.now(),
