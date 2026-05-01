@@ -376,18 +376,18 @@ class MainActivity : AppCompatActivity() {
                 }
                 return false
             }
-            override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+            override fun onReceivedError(view: WebView, request: WebResourceRequest, webError: WebResourceError) {
                 if (request.isForMainFrame) {
                     hideOverlay()
                     val errDesc = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                        when (error.errorCode) {
+                        when (webError.errorCode) {
                             android.webkit.WebViewClient.ERROR_HOST_LOOKUP        -> "域名解析失败，请检查网络连接"
                             -11 /* ERROR_INTERNET_DISCONNECTED */                 -> "网络未连接，请打开 Wi-Fi 或移动数据"
                             android.webkit.WebViewClient.ERROR_CONNECT            -> "无法连接到服务器"
                             android.webkit.WebViewClient.ERROR_TIMEOUT            -> "连接超时，请稍后重试"
                             android.webkit.WebViewClient.ERROR_FAILED_SSL_HANDSHAKE -> "SSL 握手失败，证书可能有问题"
                             android.webkit.WebViewClient.ERROR_UNKNOWN            -> "未知错误"
-                            else -> error.description?.toString()?.takeIf { it.isNotBlank() } ?: "加载失败（错误码 ${error.errorCode}）"
+                            else -> webError.description?.toString()?.takeIf { it.isNotBlank() } ?: "加载失败（错误码 ${webError.errorCode}）"
                         }
                     } else {
                         "网络连接失败，请检查网络后重试"
