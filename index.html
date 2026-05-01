@@ -226,6 +226,7 @@ footer span{margin:0 8px;opacity:.4}
   position:fixed;top:0;right:0;bottom:0;width:320px;max-width:92vw;
   background:#fff;z-index:1000;box-shadow:-4px 0 32px rgba(0,0,0,0.12);
   display:flex;flex-direction:column;
+  border-radius:20px 0 0 20px;
   transform:translateX(100%);transition:transform .28s cubic-bezier(0.32,0,0.15,1);
   overflow:hidden;
 }
@@ -250,12 +251,12 @@ footer span{margin:0 8px;opacity:.4}
 .history-list{display:flex;flex-direction:column;gap:8px}
 .history-item{
   display:flex;align-items:center;gap:10px;padding:10px 12px;
-  background:#f9f9f9;border:1px solid #efefef;border-radius:8px;
+  background:#f9f9f9;border:1px solid #efefef;border-radius:12px;
   cursor:pointer;transition:background .15s;
 }
 .history-item:hover{background:#f0f0f0}
 .history-icon{
-  width:32px;height:32px;border-radius:7px;overflow:hidden;
+  width:32px;height:32px;border-radius:10px;overflow:hidden;
   background:#e8e8e8;flex-shrink:0;display:flex;align-items:center;justify-content:center;
 }
 .history-icon img{width:100%;height:100%;object-fit:cover}
@@ -272,7 +273,7 @@ footer span{margin:0 8px;opacity:.4}
 .history-dl-btn{
   font-size:10px;font-weight:500;color:#555;
   background:#f5f5f5;border:1px solid #e0e0e0;
-  border-radius:5px;padding:2px 8px;
+  border-radius:8px;padding:2px 8px;
   text-decoration:none;white-space:nowrap;
   transition:background .15s,color .15s;
 }
