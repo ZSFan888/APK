@@ -72,7 +72,7 @@ async function handleStatus(request, env) {
   const data = await (await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}`
   )).json();
-  const result = { run_id: runId, build_id: buildId || null, status: data.status, conclusion: data.conclusion, job_id: null, step_index: 0, step_total: 0 };
+  const result = { run_id: runId, build_id: buildId || null, status: data.status, conclusion: data.conclusion, job_id: null, step_index: 0, step_total: 0, artifacts: [] };
 
   // 解析 job steps 获取精确进度
   const jobsRes = await gh(env,
@@ -159,6 +159,17 @@ async function handleStatus(request, env) {
     }
   }
 
+
+  if (data.status === "completed" && data.conclusion === "success") {
+    const artsRes = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`);
+    const arts = await artsRes.json();
+    result.artifacts = (arts.artifacts || []).map(a => ({
+      id: a.id,
+      name: a.name,
+      archive_download_url: a.archive_download_url,
+      abi: /arm64-v8a/.test(a.name) ? 'arm64-v8a' : (/armeabi-v7a/.test(a.name) ? 'armeabi-v7a' : 'universal')
+    }));
+  }
   return json(result);
 }
 
@@ -192,20 +203,21 @@ async function handleDownload(request, env) {
   const params     = new URL(request.url).searchParams;
   const runId      = params.get('run_id');
   const artifactId = params.get('artifact_id');
+  const abi        = params.get('abi');
   if (!runId) return json({ error: 'Missing run_id' }, 400);
 
   let resolvedId = artifactId;
   let artifactName = 'apk';
 
   if (!resolvedId) {
-    // 没有指定 artifact_id，查列表取第一个
     const arts = await (await gh(env,
       `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
     )).json();
-    const a = arts.artifacts?.[0];
-    if (!a) return json({ error: 'Artifact not found' }, 404);
-    resolvedId = a.id;
-    artifactName = a.name;
+    const list = arts.artifacts || [];
+    const pick = abi ? list.find(a => a.name.includes(abi)) : list[0];
+    if (!pick) return json({ error: 'Artifact not found', abi }, 404);
+    resolvedId = pick.id;
+    artifactName = pick.name;
   }
 
   // GitHub artifact 下载：先拿重定向 URL，再不带 Auth 头去 S3 下载
