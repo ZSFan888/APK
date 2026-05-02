@@ -305,11 +305,12 @@ class MainActivity : AppCompatActivity() {
                 if (!isShowingError) {
                     view.evaluateJavascript("(function(){try{return document.documentElement.outerHTML.slice(0,4000)}catch(e){return ''}})();") { raw ->
                         val html = raw
-                            ?.removePrefix("\"")
-                            ?.removeSuffix("\"")
+                            ?.removePrefix(""")
+                            ?.removeSuffix(""")
                             ?.replace("\u003C", "<")
                             ?.replace("\u003E", ">")
-                            ?.replace("\n", "\n")
+                            ?.replace("\n", "
+")
                             ?.replace("\\"", "\"")
                         val hint = looksLikeWebViewBlocked(url, view.title, html)
                         if (!hint.isNullOrBlank() && !isShowingError) {
