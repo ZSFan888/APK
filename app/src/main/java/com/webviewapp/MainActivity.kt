@@ -593,23 +593,23 @@ class MainActivity : AppCompatActivity() {
     private fun fetchThemeColor(view: WebView) {
         val js = """
             (function() {
-                var m = document.querySelector('meta[name="theme-color"]');
-                if (m && m.content) { ThemeBridge.onThemeColor(m.content); return; }
-                var el = document.elementFromPoint(window.innerWidth/2, 1);
+                var m = document.querySelector("meta[name=\"theme-color\"]");
+                if (m && m.content) { window.ThemeBridge.onThemeColor(m.content); return; }
+                var el = document.elementFromPoint(window.innerWidth / 2, 1);
                 if (el) {
                     var bg = getComputedStyle(el).backgroundColor;
-                    var r = bg.match(/rgba?\((\d+),(\d+),(\d+)/);
-                    if (r) ThemeBridge.onThemeColor(
-                        '#' + [r[1],r[2],r[3]].map(function(x){
-                            return ('0' + parseInt(x).toString(16)).slice(-2);
-                        }).join('')
-                    );
+                    var r = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                    if (r) {
+                        var hex = '#' + [r[1], r[2], r[3]].map(function(x) {
+                            return ('0' + parseInt(x, 10).toString(16)).slice(-2);
+                        }).join('');
+                        window.ThemeBridge.onThemeColor(hex);
+                    }
                 }
             })();
         """.trimIndent()
         view.evaluateJavascript(js, null)
     }
-
     private fun showOverlay() {
         if (overlayVisible) return
         overlayVisible = true
@@ -630,17 +630,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun errorHtml(url: String?, errDesc: String? = null): String {
-        val safeUrl  = url?.replace("'", "\'") ?: "about:blank"
+        val safeUrl = url?.replace("'", "\'") ?: "about:blank"
         val safeDesc = (errDesc ?: "网络连接失败，请检查网络后重试")
-            .replace("&", "&amp;").replace("<", "&lt;")
-        return """<!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,sans-serif;flex-direction:column;background:#fff;color:#1a1a1a;padding:32px;box-sizing:border-box;text-align:center;">
-<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom:8px;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M4.93 4.93l14.14 14.14"/></svg>
-<p style="margin:12px 0 6px;font-size:17px;font-weight:600;color:#111;">网页加载失败</p>
-<p style="margin:0 0 28px;font-size:13px;color:#888;max-width:260px;line-height:1.6">${safeDesc}</p>
-<button onclick="if(window.NativeBridge){NativeBridge.reload()}else{window.location.href='${safeUrl}'}" style="padding:13px 36px;border:none;border-radius:999px;background:#111;color:#fff;font-size:15px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:500;-webkit-tap-highlight-color:transparent;active:opacity:.8">重试</button>
-</body></html>""".trimIndent()
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:-apple-system,sans-serif;flex-direction:column;background:#fff;color:#1a1a1a;padding:32px;box-sizing:border-box;text-align:center;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5" style="margin-bottom:8px;flex-shrink:0"><circle cx="12" cy="12" r="9"/><path d="M4.93 4.93l14.14 14.14"/></svg>
+            <p style="margin:12px 0 6px;font-size:17px;font-weight:600;color:#111;">网页加载失败</p>
+            <p style="margin:0 0 28px;font-size:13px;color:#888;max-width:260px;line-height:1.6">${safeDesc}</p>
+            <button onclick="if(window.NativeBridge){window.NativeBridge.reload()}else{window.location.href='${safeUrl}'}" style="padding:13px 36px;border:none;border-radius:999px;background:#111;color:#fff;font-size:15px;cursor:pointer;font-family:-apple-system,sans-serif;font-weight:500;-webkit-tap-highlight-color:transparent;">重试</button>
+            </body>
+            </html>
+        """.trimIndent()
     }
     private var backPressedTime = 0L
     @Deprecated("Deprecated in Java")
