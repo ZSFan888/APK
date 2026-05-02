@@ -3,7 +3,6 @@ package com.webviewapp
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
-import android.os.Environment
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -12,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.webkit.CookieManager
+import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -22,10 +22,11 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import android.os.Environment
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var overlayVisible = false
+    private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
 
     private val dotsFrames = arrayOf("", ".", "..", "...")
     private var dotsIndex = 0
@@ -61,24 +63,26 @@ class MainActivity : AppCompatActivity() {
             android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
+        if ("{{NO_SCREENSHOT}}" == "true") {
+            window.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+        }
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         setContentView(R.layout.activity_main)
-        webView     = findViewById(R.id.webView)
-        progressBar = findViewById(R.id.progressBar)
-        overlay     = findViewById(R.id.overlay)
-        spinner     = findViewById(R.id.spinner)
-        loadingText = findViewById(R.id.loadingText)
+        webView      = findViewById(R.id.webView)
+        progressBar  = findViewById(R.id.progressBar)
+        overlay      = findViewById(R.id.overlay)
+        spinner      = findViewById(R.id.spinner)
+        loadingText  = findViewById(R.id.loadingText)
         swipeRefresh = findViewById(R.id.swipeRefresh)
-        swipeRefresh.setColorSchemeColors(
-            android.graphics.Color.parseColor("#6366F1")
-        )
-        swipeRefresh.setOnRefreshListener {
-            webView.reload()
-        }
+        swipeRefresh.setColorSchemeColors(android.graphics.Color.parseColor("#6366F1"))
+        swipeRefresh.setOnRefreshListener { webView.reload() }
         showOverlay()
         setupWebView()
     }
@@ -101,16 +105,16 @@ class MainActivity : AppCompatActivity() {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
         }
+
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
                 showOverlay()
             }
-
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
+                hideOverlay()
             }
-
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -126,6 +130,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 progressBar.setProgress(newProgress)
@@ -140,6 +145,7 @@ class MainActivity : AppCompatActivity() {
                 fileChooserParams: WebChromeClient.FileChooserParams
             ): Boolean {
                 try {
+                    @Suppress("DEPRECATION")
                     startActivityForResult(fileChooserParams.createIntent(), FILE_CHOOSER_REQUEST)
                     fileChooserCallbackRef = filePathCallback
                 } catch (e: Exception) {
@@ -148,16 +154,18 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         }
+
         webView.setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
             try {
-                val uri = Uri.parse(url)
                 val filename = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
-                val req = DownloadManager.Request(uri).apply {
+                val req = DownloadManager.Request(Uri.parse(url)).apply {
                     setMimeType(mimetype)
                     addRequestHeader("User-Agent", userAgent)
                     setDescription("正在下载...")
                     setTitle(filename)
-                    allowScanningByMediaScanner()
+                    if (android.os.Build.VERSION.SDK_INT < 29) {
+                        @Suppress("DEPRECATION") allowScanningByMediaScanner()
+                    }
                     setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                     setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
                 }
@@ -168,7 +176,7 @@ class MainActivity : AppCompatActivity() {
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
             }
         }
-        // 键盘弹出适配：FLAG_FULLSCREEN 下 adjustResize 失效，手动监听 Insets
+
         val rootView = window.decorView.rootView
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val imeHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
@@ -186,26 +194,63 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {}
             }
         }, "ThemeBridge")
+
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun vibrate(ms: Long) {
+                try {
+                    val v = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+                    val dur = ms.coerceIn(1, 2000)
+                    if (android.os.Build.VERSION.SDK_INT >= 26) {
+                        v.vibrate(android.os.VibrationEffect.createOneShot(dur, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION") v.vibrate(dur)
+                    }
+                } catch (e: Exception) {}
+            }
+            @JavascriptInterface
+            fun share(title: String, text: String, url: String) {
+                runOnUiThread {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TITLE, title)
+                        putExtra(Intent.EXTRA_TEXT, if (url.isNotEmpty()) "$text\n$url" else text)
+                    }
+                    startActivity(Intent.createChooser(intent, title))
+                }
+            }
+            @JavascriptInterface
+            fun toast(msg: String) {
+                runOnUiThread {
+                    android.widget.Toast.makeText(this@MainActivity, msg, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            @JavascriptInterface
+            fun openExternal(url: String) {
+                runOnUiThread {
+                    try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
+                }
+            }
+            @JavascriptInterface
+            fun back() { runOnUiThread { if (webView.canGoBack()) webView.goBack() } }
+            @JavascriptInterface
+            fun reload() { runOnUiThread { webView.reload() } }
+        }, "NativeBridge")
+
         webView.loadUrl(APP_URL)
     }
 
     private fun fetchThemeColor(view: WebView) {
-        val js = """
-            (function() {
-                var m = document.querySelector('meta[name="theme-color"]');
-                if (m && m.content) { ThemeBridge.onThemeColor(m.content); return; }
-                var el = document.elementFromPoint(window.innerWidth/2, 1);
-                if (el) {
-                    var bg = getComputedStyle(el).backgroundColor;
-                    var r = bg.match(/rgba?\((\d+),(\d+),(\d+)/);
-                    if (r) ThemeBridge.onThemeColor(
-                        '#' + [r[1],r[2],r[3]].map(function(x){
-                            return ('0' + parseInt(x).toString(16)).slice(-2);
-                        }).join('')
-                    );
-                }
-            })();
-        """.trimIndent()
+        val js = "(function(){" +
+            "var m=document.querySelector('meta[name=\"theme-color\"]');" +
+            "if(m&&m.content){window.ThemeBridge.onThemeColor(m.content);return;}" +
+            "var el=document.elementFromPoint(window.innerWidth/2,1);" +
+            "if(el){var bg=getComputedStyle(el).backgroundColor;" +
+            "var r=bg.match(/rgba?\\((\\d+),(\\d+),(\\d+)/);" +
+            "if(r){var h='#';" +
+            "for(var i=1;i<=3;i++){var x=parseInt(r[i]);var s=x.toString(16);h+=s.length<2?'0'+s:s;}" +
+            "window.ThemeBridge.onThemeColor(h);}}" +
+            "})();"
         view.evaluateJavascript(js, null)
     }
 
@@ -235,22 +280,23 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun errorHtml() = """
-        <html><body style="margin:0;display:flex;align-items:center;justify-content:center;
-        height:100vh;font-family:sans-serif;flex-direction:column;background:#fff;color:#333;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <p style="margin-top:16px;font-size:15px;">网络连接失败</p>
-        <button onclick="location.reload()"
-          style="margin-top:12px;padding:10px 24px;border:none;border-radius:999px;
-          background:#000;color:#fff;font-size:14px;cursor:pointer;">重试</button>
-        </body></html>
-    """.trimIndent()
+    private fun errorHtml(): String {
+        return "<html><body style=\"margin:0;display:flex;align-items:center;justify-content:center;" +
+            "height:100vh;font-family:sans-serif;flex-direction:column;background:#fff;color:#333;\">" +
+            "<svg width=\"48\" height=\"48\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#999\" stroke-width=\"1.5\">" +
+            "<circle cx=\"12\" cy=\"12\" r=\"10\"/>" +
+            "<line x1=\"12\" y1=\"8\" x2=\"12\" y2=\"12\"/>" +
+            "<line x1=\"12\" y1=\"16\" x2=\"12.01\" y2=\"16\"/>" +
+            "</svg>" +
+            "<p style=\"margin-top:16px;font-size:15px;\">网络连接失败</p>" +
+            "<button onclick=\"location.reload()\" " +
+            "style=\"margin-top:12px;padding:10px 24px;border:none;border-radius:999px;" +
+            "background:#000;color:#fff;font-size:14px;cursor:pointer;\">重试</button>" +
+            "</body></html>"
+    }
 
     private var backPressedTime = 0L
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (webView.canGoBack()) {
@@ -270,8 +316,6 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() { super.onPause(); CookieManager.getInstance().flush() }
     override fun onDestroy() { handler.removeCallbacksAndMessages(null); webView.destroy(); super.onDestroy() }
 
-    private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
-
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FILE_CHOOSER_REQUEST) {
@@ -288,6 +332,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val APP_URL = "{{APP_URL}}"
+        const val APP_VERSION = "{{VERSION_NAME}}"
         private const val FILE_CHOOSER_REQUEST = 1001
     }
 }
