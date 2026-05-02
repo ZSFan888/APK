@@ -856,7 +856,7 @@ async function handleBuildClick(){
 
 function startPoll(runId, data, buildId=null, dispatchedAt=null){
   let elapsed = 0;
-  const MAX_WAIT = 900; // 最长等 15 分钟
+  const MAX_WAIT = 1800; // 最长等 30 分钟
   currentRunId = runId;
   pollTimer = setInterval(async ()=>{
     elapsed += 5;
@@ -961,8 +961,9 @@ async function tryFetchArtifacts(runId, data){
       addHistory(fresh);
     } else {
       setDot('fail');
-      setTitle('超时', '构建时间过长，请前往 GitHub Actions 查看状态');
-      showErr('构建超时，可直接前往 <a href="https://github.com/ZhangShengFan/Pakr/actions" target="_blank" style="color:#111">GitHub Actions</a> 下载 Artifact');
+      setTitle('超时', '前端轮询超时，但构建可能已经完成');
+      const actionsUrl = runId ? `https://github.com/ZSFan888/APK/actions/runs/${runId}` : 'https://github.com/ZSFan888/APK/actions';
+      showErr(`前端等待超时，但构建可能已成功。请先打开 <a href="${actionsUrl}" target="_blank" style="color:#111">本次 GitHub Actions 运行</a> 下载 Artifact。`);
       setBusy(false);
     }
   } catch(e){
