@@ -28,7 +28,7 @@ export default {
 async function handleBuild(request, env) {
   const { app_url, app_name, package_name, version_name, icon_url } = await request.json();
   const buildId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  if (!app_url || !app_name || !package_name || !version_name)
+  if (!app_url || !app_name || !package_name || !version_name || !icon_url)
     return json({ error: 'Missing required fields', detail: 'icon_url is required' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/;
   if (!pkgRe.test(package_name))
@@ -201,34 +201,34 @@ async function handleDownload(request, env) {
   const artifactId = params.get('artifact_id');
   if (!runId) return json({ error: 'Missing run_id' }, 400);
 
-  let resolvedId = artifactId;
-  let artifactName = 'apk';
-
-  if (!resolvedId) {
-    // 没有指定 artifact_id，查列表取第一个
-    const arts = await (await gh(env,
-      `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
-    )).json();
-    const a = arts.artifacts?.[0];
-    if (!a) return json({ error: 'Artifact not found' }, 404);
-    resolvedId = a.id;
-    artifactName = a.name;
+  const artsRes = await (await gh(env,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
+  )).json();
+  const artifacts = (artsRes.artifacts || []).filter(a => !a.expired);
+  if (!artifacts.length) {
+    return json({ error: 'Artifact not found', run_id: runId, artifact_id: artifactId || null, artifacts: [] }, 404);
   }
 
-  // GitHub artifact 下载：先拿重定向 URL，再不带 Auth 头去 S3 下载
+  let picked = null;
+  if (artifactId) picked = artifacts.find(a => String(a.id) === String(artifactId));
+  if (!picked) picked = artifacts[0];
+
+  const resolvedId = picked.id;
+  const artifactName = picked.name || 'apk';
+
   const dlRedirect = await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/artifacts/${resolvedId}/zip`,
     { redirect: 'manual' }
   );
-  // 302 重定向到 S3，不能带 Authorization 头
   const s3Url = dlRedirect.headers.get('location');
-  if (!s3Url) return json({ error: 'Download redirect failed', status: dlRedirect.status }, 502);
+  if (!s3Url) {
+    return json({ error: 'Download redirect failed', status: dlRedirect.status, run_id: runId, artifact_id: resolvedId }, 502);
+  }
 
   const dl = await fetch(s3Url);
-  if (!dl.ok) return json({ error: 'Download failed from S3', status: dl.status }, 502);
+  if (!dl.ok) return json({ error: 'Download failed from S3', status: dl.status, run_id: runId, artifact_id: resolvedId }, 502);
   const zipBuf = await dl.arrayBuffer();
 
-  // 尝试解压，直接返回 .apk
   try {
     const apk = await extractApkFromZip(zipBuf);
     if (apk) {
@@ -244,7 +244,6 @@ async function handleDownload(request, env) {
     }
   } catch (_) {}
 
-  // 解压失败，降级返回原始 ZIP
   return new Response(zipBuf, {
     headers: {
       'Content-Type': 'application/zip',
@@ -254,7 +253,7 @@ async function handleDownload(request, env) {
   });
 }
 
-// 解析 ZIP Local File Headers，提取第一个 .apk 文件字节（支持 stored + deflate）
+// 解析 ZIP Local File Headers// 解析 ZIP Local File Headers，提取第一个 .apk 文件字节（支持 stored + deflate）
 async function extractApkFromZip(buf) {
   const view  = new DataView(buf);
   const bytes = new Uint8Array(buf);
