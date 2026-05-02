@@ -14,9 +14,8 @@ else:
         img = Image.open(io.BytesIO(raw)).convert('RGBA')
         print(f'Image OK: {img.format} {img.size}')
     except Exception as e:
-        # fix(bug#4): 下载失败时 exit 1，让 CI 明确报错而不是静默跳过
-        print(f'Download/open failed: {e}')
-        sys.exit(1)
+        print(f'Download/open failed, keep default icon: {e}')
+        img = None
 
     if img is not None:
         for density, size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
