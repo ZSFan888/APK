@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                     <p>检测结果：${safeReason}</p>
                     <p class="url">${safeUrl}</p>
                     <div class="actions">
-                        <button class="primary" onclick="if(window.NativeBridge){NativeBridge.openExternal('${safeUrl}')}else{window.location.href='${safeUrl}'}">在系统浏览器打开</button>
+                        <button class="primary" onclick="if(window.NativeBridge){window.NativeBridge.openExternal('${safeUrl}')}else{window.location.href='${safeUrl}'}">在系统浏览器打开</button>
                         <button class="secondary" onclick="location.reload()">重试</button>
                     </div>
                 </div>
@@ -305,13 +305,12 @@ class MainActivity : AppCompatActivity() {
                 if (!isShowingError) {
                     view.evaluateJavascript("(function(){try{return document.documentElement.outerHTML.slice(0,4000)}catch(e){return ''}})();") { raw ->
                         val html = raw
-                            ?.removePrefix(""")
-                            ?.removeSuffix(""")
+                            ?.removePrefix("\"")
+                            ?.removeSuffix("\"")
                             ?.replace("\u003C", "<")
                             ?.replace("\u003E", ">")
-                            ?.replace("\n", "
-")
-                            ?.replace("\"", """)
+                            ?.replace("\n", "\n")
+                            ?.replace("\\"", "\"")
                         val hint = looksLikeWebViewBlocked(url, view.title, html)
                         if (!hint.isNullOrBlank() && !isShowingError) {
                             showBlockedBySitePage(url, hint)
