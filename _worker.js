@@ -13,13 +13,19 @@ export default {
       else return env.ASSETS.fetch(request);
       return cors(res, env);
     } catch (e) {
+      if (env.ASSETS) {
+        try {
+          const url = new URL(request.url);
+          if (!['/build','/status','/logs','/download','/cancel'].includes(url.pathname)) return cors(await env.ASSETS.fetch(request), env);
+        } catch {}
+      }
       return cors(json({ error: e.message }, 500), env);
     }
   }
 };
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_url } = await request.json();
   const buildId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   if (!app_url || !app_name || !package_name || !version_name)
     return json({ error: 'Missing required fields' }, 400);
@@ -315,4 +321,4 @@ function cors(res, env) {
   h.set('Access-Control-Allow-Headers', 'Content-Type');
   return new Response(res.body, { status: res.status, headers: h });
 }
-// force-redeploy: 1777691401.962324
+// force-redeploy: pages-advanced-mode-fix-20260502-1137
