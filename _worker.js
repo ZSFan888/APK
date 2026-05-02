@@ -43,7 +43,7 @@ async function handleBuild(request, env) {
     return json({ error: 'version_name must be 1-32 characters' }, 400);
 
   const r = await gh(env,
-    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build-apk.yml/dispatches`,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
         inputs: { app_url, app_name, package_name, version_name, icon_url: icon_url || `${new URL(app_url).origin}/logo.jpg` }
