@@ -501,6 +501,23 @@ footer{border-top-color:var(--border);color:var(--faint)}
 [data-theme="dark"] .nav-logo-icon svg{stroke:#0d1117}
 [data-theme="dark"] .step-num{background:#e6edf3;color:#0d1117}
 
+
+#dlActions{display:grid;gap:10px;margin-top:10px}
+.apk-card{border:1px solid #ececec;border-radius:14px;background:#fafafa;overflow:hidden}
+.apk-card.open{background:#fff;border-color:#e5e5e5;box-shadow:0 8px 22px rgba(0,0,0,.04)}
+.apk-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px;background:transparent;border:none}
+.apk-trigger-left{display:flex;align-items:center;gap:10px;min-width:0;font-size:14px;font-weight:600;color:#111}
+.apk-trigger-badge{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 8px;border-radius:999px;background:#111;color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.apk-trigger-arrow{width:18px;height:18px;stroke:#999;stroke-width:2;fill:none;flex:0 0 auto;transition:transform .2s ease}
+.apk-card.open .apk-trigger-arrow{transform:rotate(180deg)}
+.apk-actions{display:none;grid-template-columns:1fr;gap:8px;padding:0 12px 12px}
+.apk-card.open .apk-actions{display:grid}
+.apk-actions button{height:40px;border-radius:10px;border:1px solid #e8e8e8;background:#fff;color:#111;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.apk-actions button svg{flex:0 0 auto}
+.dl-btn{background:#111!important;color:#fff!important;border-color:#111!important}
+.cp-btn.copied{background:#ecfdf3!important;color:#15803d!important;border-color:#bbf7d0!important}
+@media (min-width: 520px){.apk-actions{grid-template-columns:repeat(3,1fr)}}
+
 </style>
 </head>
 <body>
@@ -1053,13 +1070,13 @@ function renderDownloadButtons(data, runId){
     // 下载
     const dlBtn=document.createElement('button');
     dlBtn.type='button'; dlBtn.className='dl-btn';
-    dlBtn.innerHTML=DL_ICO+' 下载';
+    dlBtn.innerHTML=DL_ICO+' 下载 APK';
     dlBtn.addEventListener('click',()=>{ window.location.href=dlUrl; });
 
     // 二维码
     const qrBtn=document.createElement('button');
     qrBtn.type='button'; qrBtn.className='qr-btn';
-    qrBtn.innerHTML=QR_ICO+' 二维码';
+    qrBtn.innerHTML=QR_ICO+' 扫码下载';
     qrBtn.addEventListener('click',()=>{ showQR(new URL(dlUrl,window.location.href).href, label); });
 
     // 复制链接
