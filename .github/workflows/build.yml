@@ -86,7 +86,7 @@ jobs:
       - name: Build APK (arm64 + armeabi-v7a)
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a,armeabi-v7a
+          ./gradlew assembleRelease --no-daemon
 
       - name: Sign APK
         run: |
@@ -106,26 +106,28 @@ jobs:
           SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
           mkdir -p /tmp/signed
-          echo "=== Searching for APK files ==="
+          echo "=== Searching for split APK files ==="
           find app/build -name '*.apk' 2>/dev/null || echo "No APK found in app/build"
-          APK=$(find app/build -name 'app-release-unsigned.apk' 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then
-            APK=$(find app/build -name '*release*.apk' 2>/dev/null | grep -v unsigned | head -1)
-          fi
-          if [ -z "$APK" ]; then
-            echo "No release APK found" >&2
+          FOUND=0
+          while IFS= read -r APK; do
+            [ -z "$APK" ] && continue
+            echo "Processing: $APK"
+            ABI=$(echo "$APK" | grep -oE 'arm64-v8a|armeabi-v7a' | head -1)
+            [ -z "$ABI" ] && continue
+            OUT="/tmp/signed/${SAFE}_${VER}_${ABI}.apk"
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_${ABI}.apk
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign               --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS"               --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS"               --out "$OUT" /tmp/aligned_${ABI}.apk
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify "$OUT"
+            echo "Signed: $OUT"
+            FOUND=1
+          done < <(find app/build -type f \( -name '*arm64-v8a*release*.apk' -o -name '*armeabi-v7a*release*.apk' -o -path '*/release/*arm64-v8a*.apk' -o -path '*/release/*armeabi-v7a*.apk' \) 2>/dev/null)
+          if [ "$FOUND" -ne 1 ]; then
+            echo "No split ABI APKs found" >&2
             exit 1
           fi
-          echo "Using APK: $APK"
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_universal.apk
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign             --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS"             --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS"             --out /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk /tmp/aligned_universal.apk
-          cp /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk /tmp/signed/${SAFE}_${VER}_armeabi-v7a.apk
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk
-          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify /tmp/signed/${SAFE}_${VER}_armeabi-v7a.apk
           ls -la /tmp/signed/
           echo "SIGNED_DIR=/tmp/signed" >> $GITHUB_ENV
           echo "APK_NAME=${SAFE}_${VER}" >> $GITHUB_ENV
-
       - name: Upload arm64 APK
         uses: actions/upload-artifact@v4
         with:
