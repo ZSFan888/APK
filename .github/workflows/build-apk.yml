@@ -1,0 +1,145 @@
+name: Build APK Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: Target URL
+        required: true
+        type: string
+      app_name:
+        description: App Name
+        required: true
+        type: string
+      package_name:
+        description: Package Name
+        required: true
+        type: string
+      version_name:
+        description: Version Name
+        required: true
+        default: '1.0.0'
+        type: string
+      icon_url:
+        description: Icon Image URL
+        required: false
+        default: ''
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+      - name: Inject parameters
+        shell: bash
+        run: |
+          sed -i 's|{{APP_URL}}|${{ github.event.inputs.app_url }}|g' app/src/main/java/com/webviewapp/MainActivity.kt
+          PKG="${{ github.event.inputs.package_name }}"
+          sed -i "s|{{APP_PACKAGE}}|${PKG}|g" app/src/main/AndroidManifest.xml app/build.gradle
+          NAME="${{ github.event.inputs.app_name }}"
+          sed -i "s|{{APP_NAME}}|${NAME}|g" app/src/main/res/values/strings.xml app/src/main/AndroidManifest.xml
+          VER="${{ github.event.inputs.version_name }}"
+          VC=$(echo "$VER" | awk -F. '{ a=$1+0; b=($2==""?0:$2)+0; c=($3==""?0:$3)+0; printf "%d%02d%02d", a, b, c }')
+          sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
+          sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
+          PKG_PATH=$(echo "$PKG" | sed 's/\./\//g')
+          mkdir -p "app/src/main/java/$PKG_PATH"
+          sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
+          mv app/src/main/java/com/webviewapp/*.kt "app/src/main/java/$PKG_PATH/"
+          sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
+      - name: Ensure fallback launcher resources
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF9sAAAAASUVORK5CYII=')
+          for density in ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi']:
+              base = f'app/src/main/res/mipmap-{density}'
+              os.makedirs(base, exist_ok=True)
+              for name in ['ic_launcher.png','ic_launcher_round.png']:
+                  p = os.path.join(base, name)
+                  if not os.path.exists(p):
+                      open(p, 'wb').write(png)
+          PY
+      - name: Normalize icon URL
+        env:
+          ICON_URL: ${{ github.event.inputs.icon_url }}
+          APP_URL: ${{ github.event.inputs.app_url }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, urllib.request, urllib.parse
+          icon = (os.getenv('ICON_URL') or '').strip()
+          app = (os.getenv('APP_URL') or '').strip()
+          candidate = icon or urllib.parse.urljoin(app, '/logo.jpg')
+          final = candidate
+          try:
+              req = urllib.request.Request(candidate, headers={'User-Agent':'Mozilla/5.0'})
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  ct = (r.headers.get('Content-Type') or '').lower()
+                  if 'image/' not in ct:
+                      raise RuntimeError(f'not image content-type: {ct}')
+          except Exception:
+              final = ''
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as f:
+              f.write(f'ICON_URL_FINAL={final}
+')
+          PY
+      - name: Process icon
+        env:
+          ICON_URL: ${{ env.ICON_URL_FINAL }}
+        shell: bash
+        run: |
+          pip install Pillow -q
+          python3 Scripts/process_icon.py
+      - name: Build APK (arm64 + armeabi-v7a)
+        shell: bash
+        run: |
+          ./gradlew assembleRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a,armeabi-v7a
+      - name: Sign APK
+        shell: bash
+        run: |
+          KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 --decode > /tmp/release.keystore
+            KS_PASS="${{ secrets.KEYSTORE_PASSWORD }}"
+            KEY_ALIAS="${{ secrets.KEY_ALIAS }}"
+            KEY_PASS="${{ secrets.KEY_PASSWORD }}"
+          else
+            keytool -genkey -v -keystore /tmp/release.keystore -alias debugkey -keyalg RSA -keysize 2048 -validity 3650 -storepass android -keypass android -dname "CN=Debug,O=Debug,C=US" -noprompt
+            KS_PASS="android"
+            KEY_ALIAS="debugkey"
+            KEY_PASS="android"
+          fi
+          BUILD_TOOLS=$(ls "$ANDROID_HOME/build-tools/" | sort -V | tail -1)
+          SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
+          VER="${{ github.event.inputs.version_name }}"
+          mkdir -p /tmp/signed
+          for APK in $(find app/build/outputs/apk/release -name '*.apk'); do
+            ABI=$(echo "$APK" | grep -oP '(arm64-v8a|armeabi-v7a)' || echo 'universal')
+            OUT="/tmp/signed/${SAFE}_${VER}_${ABI}.apk"
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign" -v -p 4 "$APK" "/tmp/aligned_${ABI}.apk"
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" sign --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" --out "$OUT" "/tmp/aligned_${ABI}.apk"
+            "$ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner" verify "$OUT"
+          done
+          echo "SIGNED_DIR=/tmp/signed" >> "$GITHUB_ENV"
+          echo "APK_NAME=${SAFE}_${VER}" >> "$GITHUB_ENV"
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}
+          path: ${{ env.SIGNED_DIR }}/*.apk
+          retention-days: 7
