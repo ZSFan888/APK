@@ -66,6 +66,20 @@ jobs:
           mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
           sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
 
+      - name: Ensure fallback launcher resources
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAAWUlEQVR4nO3BAQ0AAADCoPdPbQ43oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfgx1lAABqFDyOQAAAABJRU5ErkJggg==')
+          for density in ['mdpi','hdpi','xhdpi','xxhdpi','xxxhdpi']:
+              base = f'app/src/main/res/mipmap-{density}'
+              os.makedirs(base, exist_ok=True)
+              for name in ['ic_launcher.png', 'ic_launcher_round.png']:
+                  path = os.path.join(base, name)
+                  if not os.path.exists(path) or os.path.getsize(path) < 100:
+                      open(path, 'wb').write(png)
+          PY
+
       - name: Process icon
         env:
           ICON_URL: ${{ github.event.inputs.icon_url }}
