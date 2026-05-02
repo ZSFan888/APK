@@ -1,6 +1,6 @@
 name: Build APK Manual
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       app_url:
