@@ -10,6 +10,7 @@ export default {
       else if (url.pathname === '/logs'     && request.method === 'GET')  res = await handleLogs(request, env);
       else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
       else if (url.pathname === '/cancel'   && request.method === 'POST') res = await handleCancel(request, env);
+      else if (url.pathname === '/debug-env' && request.method === 'GET') res = await handleDebugEnv(request, env);
       else return env.ASSETS.fetch(request);
       return cors(res, env);
     } catch (e) {
@@ -322,3 +323,18 @@ function cors(res, env) {
   return new Response(res.body, { status: res.status, headers: h });
 }
 // force-redeploy: pages-advanced-mode-fix-20260502-1137
+
+
+async function handleDebugEnv(request, env) {
+  const mask = (v) => !v ? null : (v.length <= 10 ? '*'.repeat(v.length) : `${v.slice(0,4)}***${v.slice(-4)}`);
+  return json({
+    ok: true,
+    env: {
+      GITHUB_OWNER: env.GITHUB_OWNER || null,
+      GITHUB_REPO: env.GITHUB_REPO || null,
+      GITHUB_TOKEN_present: !!env.GITHUB_TOKEN,
+      GITHUB_TOKEN_masked: mask(env.GITHUB_TOKEN || ''),
+      GITHUB_TOKEN_length: env.GITHUB_TOKEN ? env.GITHUB_TOKEN.length : 0,
+    }
+  });
+}
