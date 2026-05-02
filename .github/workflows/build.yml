@@ -108,20 +108,21 @@ jobs:
           mkdir -p /tmp/signed
           echo "=== Searching for APK files ==="
           find app/build -name '*.apk' 2>/dev/null || echo "No APK found in app/build"
-          for APK in $(find app/build -name '*release*.apk' -o -name '*Release*.apk' 2>/dev/null | grep -v unsigned || true); do
-            echo "Processing: $APK"
-            ABI=$(echo "$APK" | grep -oP '(arm64-v8a|armeabi-v7a)' | head -1)
-            if [ -z "$ABI" ]; then ABI="universal"; fi
-            OUT="/tmp/signed/${SAFE}_${VER}_${ABI}.apk"
-            $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_${ABI}.apk
-            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign \
-              --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" \
-              --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" \
-              --out "$OUT" /tmp/aligned_${ABI}.apk
-            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify "$OUT"
-            echo "Signed: $OUT"
-          done
-          ls -la /tmp/signed/ || echo "No signed APKs"
+          APK=$(find app/build -name 'app-release-unsigned.apk' 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find app/build -name '*release*.apk' 2>/dev/null | grep -v unsigned | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "No release APK found" >&2
+            exit 1
+          fi
+          echo "Using APK: $APK"
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_universal.apk
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign             --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS"             --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS"             --out /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk /tmp/aligned_universal.apk
+          cp /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk /tmp/signed/${SAFE}_${VER}_armeabi-v7a.apk
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify /tmp/signed/${SAFE}_${VER}_arm64-v8a.apk
+          $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify /tmp/signed/${SAFE}_${VER}_armeabi-v7a.apk
+          ls -la /tmp/signed/
           echo "SIGNED_DIR=/tmp/signed" >> $GITHUB_ENV
           echo "APK_NAME=${SAFE}_${VER}" >> $GITHUB_ENV
 
