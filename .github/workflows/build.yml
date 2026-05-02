@@ -43,11 +43,6 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.2'
-
       - name: Inject parameters
         run: |
           sed -i 's|{{APP_URL}}|${{ github.event.inputs.app_url }}|g' app/src/main/java/com/webviewapp/MainActivity.kt
@@ -59,7 +54,8 @@ jobs:
           VC=$(echo "$VER" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
           sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
           sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
-          PKG_PATH=$(echo $PKG | sed 's/\./\//g')
+          PKG_PATH=$(echo $PKG | sed 's/\.//g; s/./&\//g' | sed 's/\(.*\)\//\1/')
+          PKG_PATH=$(echo $PKG | tr '.' '/')
           echo "PKG_PATH is: $PKG_PATH"
           mkdir -p app/src/main/java/$PKG_PATH
           sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
@@ -89,7 +85,8 @@ jobs:
 
       - name: Build APK (arm64 + armeabi-v7a)
         run: |
-          gradle assembleRelease --no-daemon             -Pandroid.injected.build.abi=arm64-v8a,armeabi-v7a
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon -Pandroid.injected.build.abi=arm64-v8a,armeabi-v7a
 
       - name: Sign APK
         run: |
@@ -109,14 +106,22 @@ jobs:
           SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
           VER="${{ github.event.inputs.version_name }}"
           mkdir -p /tmp/signed
-          for APK in $(find app/build/outputs/apk/release -name '*.apk'); do
-            ABI=$(echo "$APK" | grep -oP '(arm64-v8a|armeabi-v7a)' || echo "universal")
+          echo "=== Searching for APK files ==="
+          find app/build -name '*.apk' 2>/dev/null || echo "No APK found in app/build"
+          for APK in $(find app/build -name '*release*.apk' -o -name '*Release*.apk' 2>/dev/null | grep -v unsigned || true); do
+            echo "Processing: $APK"
+            ABI=$(echo "$APK" | grep -oP '(arm64-v8a|armeabi-v7a)' | head -1)
+            if [ -z "$ABI" ]; then ABI="universal"; fi
             OUT="/tmp/signed/${SAFE}_${VER}_${ABI}.apk"
             $ANDROID_HOME/build-tools/$BUILD_TOOLS/zipalign -v -p 4 "$APK" /tmp/aligned_${ABI}.apk
-            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign               --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS"               --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS"               --out "$OUT" /tmp/aligned_${ABI}.apk
+            $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner sign \
+              --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" \
+              --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" \
+              --out "$OUT" /tmp/aligned_${ABI}.apk
             $ANDROID_HOME/build-tools/$BUILD_TOOLS/apksigner verify "$OUT"
             echo "Signed: $OUT"
           done
+          ls -la /tmp/signed/ || echo "No signed APKs"
           echo "SIGNED_DIR=/tmp/signed" >> $GITHUB_ENV
           echo "APK_NAME=${SAFE}_${VER}" >> $GITHUB_ENV
 
@@ -125,7 +130,7 @@ jobs:
         with:
           name: ${{ env.APK_NAME }}_arm64-v8a
           path: ${{ env.SIGNED_DIR }}/*arm64-v8a*.apk
-          if-no-files-found: ignore
+          if-no-files-found: warn
           retention-days: 7
 
       - name: Upload armeabi-v7a APK
@@ -133,5 +138,5 @@ jobs:
         with:
           name: ${{ env.APK_NAME }}_armeabi-v7a
           path: ${{ env.SIGNED_DIR }}/*armeabi-v7a*.apk
-          if-no-files-found: ignore
+          if-no-files-found: warn
           retention-days: 7
