@@ -18,6 +18,13 @@ on:
       icon_url:
         description: Icon Image URL
         required: true
+      no_screenshot:
+        description: Disable screenshots
+        required: false
+        default: 'false'
+      build_id:
+        description: Build ID
+        required: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -50,21 +57,31 @@ jobs:
 
       - name: Inject parameters
         run: |
-          sed -i 's|{{APP_URL}}|${{ github.event.inputs.app_url }}|g' app/src/main/java/com/webviewapp/MainActivity.kt
+          URL="${{ github.event.inputs.app_url }}"
+          URL_ESC=$(printf '%s' "$URL" | sed -e 's/[\&|]/\\&/g')
+          sed -i "s|{{APP_URL}}|${URL_ESC}|g" app/src/main/java/com/webviewapp/MainActivity.kt
+
           PKG="${{ github.event.inputs.package_name }}"
           sed -i "s|{{APP_PACKAGE}}|${PKG}|g" app/src/main/AndroidManifest.xml app/build.gradle
+
           NAME="${{ github.event.inputs.app_name }}"
-          sed -i "s|{{APP_NAME}}|${NAME}|g" app/src/main/res/values/strings.xml app/src/main/AndroidManifest.xml
+          NAME_XML=$(echo "$NAME" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&apos;/g')
+          sed -i "s|{{APP_NAME}}|${NAME_XML}|g" app/src/main/res/values/strings.xml app/src/main/AndroidManifest.xml
+
           VER="${{ github.event.inputs.version_name }}"
-          VC=$(echo "$VER" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
+          VC=$(date +%s)
           sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
           sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
+
           PKG_PATH=$(echo $PKG | sed 's/\./\//g')
           echo "PKG_PATH is: $PKG_PATH"
           mkdir -p app/src/main/java/$PKG_PATH
           sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
           mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
           sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
+
+          NO_SS="${{ github.event.inputs.no_screenshot }}"
+          sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
 
       - name: Process icon
         env:
