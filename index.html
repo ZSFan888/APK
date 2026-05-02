@@ -1083,15 +1083,24 @@ function renderDownloadButtons(data, runId){
     const cpBtn=document.createElement('button');
     cpBtn.type='button'; cpBtn.className='cp-btn';
     cpBtn.innerHTML=CP_ICO+' 复制链接';
-    cpBtn.addEventListener('click',()=>{
+    cpBtn.addEventListener('click',(e)=>{
+      e.preventDefault();
+      e.stopPropagation();
       const fullUrl=new URL(dlUrl,window.location.href).href;
       const done=()=>{
         cpBtn.innerHTML=OK_ICO+' 已复制';
         cpBtn.classList.add('copied');
         setTimeout(()=>{ cpBtn.innerHTML=CP_ICO+' 复制链接'; cpBtn.classList.remove('copied'); },2000);
       };
-      if(navigator.clipboard){ navigator.clipboard.writeText(fullUrl).then(done).catch(()=>fallbackCopy(fullUrl,done)); }
-      else{ fallbackCopy(fullUrl,done); }
+      const fail=()=>{
+        cpBtn.innerHTML=CP_ICO+' 复制失败';
+        setTimeout(()=>{ cpBtn.innerHTML=CP_ICO+' 复制链接'; },2000);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fullUrl).then(done).catch(()=>fallbackCopy(fullUrl,done,fail));
+      } else {
+        fallbackCopy(fullUrl,done,fail);
+      }
     });
 
     actions.appendChild(dlBtn);
@@ -1102,12 +1111,20 @@ function renderDownloadButtons(data, runId){
     dlActions.appendChild(card);
   }
 
-  function fallbackCopy(text,cb){
+  function fallbackCopy(text,cb,fail){
     const t=document.createElement('textarea');
-    t.value=text; t.style.cssText='position:fixed;opacity:0';
-    document.body.appendChild(t); t.focus(); t.select();
-    try{ document.execCommand('copy'); cb(); }catch(e){}
+    t.value=text;
+    t.setAttribute('readonly','');
+    t.style.cssText='position:fixed;top:0;left:-9999px;opacity:0;pointer-events:none';
+    document.body.appendChild(t);
+    t.focus();
+    t.select();
+    t.setSelectionRange(0, t.value.length);
+    let ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){ ok=false; }
     document.body.removeChild(t);
+    if(ok){ cb && cb(); }
+    else if(fail){ fail(); }
   }
 
   if(artifacts.length===0){
