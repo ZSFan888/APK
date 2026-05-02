@@ -61,7 +61,7 @@ jobs:
         run: |
           # fix(bug#2): 对 URL 中的 sed 特殊字符做转义，防止注入崩溃
           URL="${{ github.event.inputs.app_url }}"
-          URL_ESC=$(printf '%s\n' "$URL" | sed 's/[&/\]/\\&/g')
+          URL_ESC=$(printf '%s' "$URL" | sed -e 's/[\&|]/\\&/g')
           sed -i "s|{{APP_URL}}|${URL_ESC}|g" app/src/main/java/com/webviewapp/MainActivity.kt
 
           PKG="${{ github.event.inputs.package_name }}"
