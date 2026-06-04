@@ -520,7 +520,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
 
 
 /* ── 免责声明弹窗 ── */
-#disclaimerOverlay{display:flex;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px}
+#disclaimerOverlay{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px}
 #disclaimerBox{background:#fff;border-radius:18px;max-width:480px;width:100%;padding:0;box-shadow:0 24px 64px rgba(0,0,0,0.28);display:flex;flex-direction:column;max-height:90vh;overflow:hidden}
 #disclaimerBox .disc-head{padding:24px 24px 0;flex-shrink:0}
 #disclaimerBox h2{font-size:17px;font-weight:700;color:#111;margin:0 0 4px;display:flex;align-items:center;gap:8px}
@@ -1422,14 +1422,15 @@ function updateThemeIcon(dark){
 </script>
 
 <script>
-// 免责声明：每次访问都显示（浏览器），App 内访问跳过
+// 免责声明：浏览器访问显示，App 内（PakrApp UA）跳过
 (function(){
-  // App 内 WebView 的 UserAgent 包含 PakrApp，跳过网页弹窗
+  var overlay=document.getElementById('disclaimerOverlay');
+  // App 内 WebView UA 含 PakrApp，直接不显示
   if(navigator.userAgent && navigator.userAgent.indexOf('PakrApp') !== -1){
-    var overlay=document.getElementById('disclaimerOverlay');
-    if(overlay) overlay.style.display='none';
     return;
   }
+  // 浏览器访问：显示弹窗
+  if(overlay) overlay.style.display='flex';
   var body = document.getElementById('discBody');
   var hint = document.getElementById('discScrollHint');
   var tip  = document.getElementById('discScrollTip');
