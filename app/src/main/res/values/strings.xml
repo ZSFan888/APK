@@ -1,4 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">{{APP_NAME}}</string>
+
+    <!-- 免责声明 -->
+    <string name="disclaimer_title">使用须知 &amp; 免责声明</string>
+    <string name="disclaimer_subtitle">请在使用前仔细阅读，继续使用即表示您同意以下全部条款</string>
+    <string name="disclaimer_body">本应用仅供技术学习、研究及个人合法用途使用。
+
+【严禁用途】
+
+× 实施网络诈骗、钓鱼攻击
+× 冒充银行、支付平台或政府机构
+× 传播违法、赌博、色情或有害内容
+× 侵犯他人知识产权、商标权或隐私权
+× 任何违反中华人民共和国及所在地法律法规的行为
+
+【法律责任声明】
+
+本应用的内容及用途由使用者自行决定，由此产生的一切法律责任均由使用者自行承担，开发者不承担连带责任。
+
+【警示】
+
+网络并非法外之地，利用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。请勿以身试法。</string>
+    <string name="disclaimer_checkbox">我已阅读并理解以上内容，承诺合法合规使用</string>
+    <string name="disclaimer_decline">不同意，退出</string>
+    <string name="disclaimer_accept">同意并继续</string>
 </resources>
