@@ -518,9 +518,52 @@ footer{border-top-color:var(--border);color:var(--faint)}
 .cp-btn.copied{background:#ecfdf3!important;color:#15803d!important;border-color:#bbf7d0!important}
 @media (min-width: 520px){.apk-actions{grid-template-columns:repeat(3,1fr)}}
 
+
+/* ── 免责声明弹窗 ── */
+#disclaimerOverlay{display:flex;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px}
+#disclaimerBox{background:#fff;border-radius:16px;max-width:480px;width:100%;padding:28px 24px 20px;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+#disclaimerBox h2{font-size:17px;font-weight:700;color:#111;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+#disclaimerBox .disc-subtitle{font-size:12px;color:#888;margin:0 0 16px}
+#disclaimerBox .disc-body{font-size:13px;color:#444;line-height:1.75;margin:0 0 20px;max-height:260px;overflow-y:auto}
+#disclaimerBox .disc-body p{margin:0 0 10px}
+#disclaimerBox .disc-body strong{color:#111}
+#disclaimerBox .disc-actions{display:flex;gap:10px}
+#disclaimerBox .disc-decline{flex:1;padding:11px;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#555;font-size:14px;cursor:pointer;font-weight:500}
+#disclaimerBox .disc-decline:hover{background:#f5f5f5}
+#disclaimerBox .disc-accept{flex:2;padding:11px;border:none;border-radius:10px;background:#111;color:#fff;font-size:14px;cursor:pointer;font-weight:600}
+#disclaimerBox .disc-accept:hover{background:#333}
+#disclaimerBox .disc-checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:12px;color:#666;cursor:pointer}
+#disclaimerBox .disc-checkbox-row input{width:15px;height:15px;cursor:pointer;accent-color:#111}
+
 </style>
 </head>
 <body>
+
+<!-- 免责声明弹窗 -->
+<div id="disclaimerOverlay">
+  <div id="disclaimerBox">
+    <h2>⚠️ 免责声明</h2>
+    <p class="disc-subtitle">请在使用前仔细阅读以下内容</p>
+    <div class="disc-body">
+      <p>本工具仅供<strong>学习、研究和个人合法用途</strong>，用于将网站快速封装为 Android 应用。</p>
+      <p><strong>禁止将本工具用于以下用途：</strong></p>
+      <p>❌ 制作仿冒、钓鱼或诈骗类应用<br>
+         ❌ 封装违法、赌博、色情等违规网站<br>
+         ❌ 侵犯他人知识产权或商标权<br>
+         ❌ 任何违反中华人民共和国及当地法律法规的行为</p>
+      <p>使用本工具产生的一切法律责任，<strong>由使用者自行承担</strong>，工具开发者不承担连带责任。</p>
+      <p>如发现滥用行为，开发者有权随时停止服务。</p>
+    </div>
+    <label class="disc-checkbox-row">
+      <input type="checkbox" id="discRemember"> 我已阅读并同意，不再显示此提示
+    </label>
+    <div class="disc-actions">
+      <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意，离开</button>
+      <button class="disc-accept" onclick="acceptDisclaimer()">我已阅读，同意并继续</button>
+    </div>
+  </div>
+</div>
+
 
 <nav>
   <a href="javascript:void(0)" class="nav-logo">
@@ -1340,6 +1383,26 @@ function updateThemeIcon(dark){
   });
 })();
 </script>
+
+<script>
+(function(){
+  try {
+    if(localStorage.getItem('disc_agreed')==='1'){
+      var el=document.getElementById('disclaimerOverlay');
+      if(el) el.style.display='none';
+    }
+  } catch(e) {}
+})();
+function acceptDisclaimer(){
+  var remember=document.getElementById('discRemember');
+  try {
+    if(remember && remember.checked) localStorage.setItem('disc_agreed','1');
+  } catch(e){}
+  var el=document.getElementById('disclaimerOverlay');
+  if(el){ el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(function(){ el.style.display='none'; },300); }
+}
+</script>
+
 </body>
 </html>
 
