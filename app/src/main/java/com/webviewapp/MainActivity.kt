@@ -80,7 +80,6 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setOnRefreshListener {
             webView.reload()
         }
-        showDisclaimerIfNeeded()
         showOverlay()
         setupWebView()
     }
@@ -292,29 +291,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun showDisclaimerIfNeeded() {
-        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("disc_agreed", false)) return
-        val dialog = android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
-            .setTitle("⚠️ 免责声明")
-            .setMessage(
-                "本应用仅供学习、研究和个人合法用途。\n\n" +
-                "禁止用于：\n" +
-                "❌ 制作仿冒、钓鱼或诈骗类应用\n" +
-                "❌ 封装违法、赌博等违规网站\n" +
-                "❌ 侵犯他人知识产权\n" +
-                "❌ 任何违反法律法规的行为\n\n" +
-                "使用本应用产生的一切法律责任由使用者自行承担。"
-            )
-            .setCancelable(false)
-            .setPositiveButton("我已阅读，同意继续") { _, _ ->
-                prefs.edit().putBoolean("disc_agreed", true).apply()
-            }
-            .setNegativeButton("不同意，退出") { _, _ ->
-                finish()
-            }
-            .create()
-        dialog.show()
     }
 
     companion object {
