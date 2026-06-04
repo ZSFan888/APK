@@ -542,24 +542,35 @@ footer{border-top-color:var(--border);color:var(--faint)}
 <!-- 免责声明弹窗 -->
 <div id="disclaimerOverlay">
   <div id="disclaimerBox">
-    <h2>⚠️ 免责声明</h2>
-    <p class="disc-subtitle">请在使用前仔细阅读以下内容</p>
+    <h2>⚠️ 使用须知 &amp; 免责声明</h2>
+    <p class="disc-subtitle">请在使用前仔细阅读，使用即表示您同意以下全部条款</p>
     <div class="disc-body">
-      <p>本工具仅供<strong>学习、研究和个人合法用途</strong>，用于将网站快速封装为 Android 应用。</p>
-      <p><strong>禁止将本工具用于以下用途：</strong></p>
-      <p>❌ 制作仿冒、钓鱼或诈骗类应用<br>
-         ❌ 封装违法、赌博、色情等违规网站<br>
-         ❌ 侵犯他人知识产权或商标权<br>
-         ❌ 任何违反中华人民共和国及当地法律法规的行为</p>
-      <p>使用本工具产生的一切法律责任，<strong>由使用者自行承担</strong>，工具开发者不承担连带责任。</p>
-      <p>如发现滥用行为，开发者有权随时停止服务。</p>
+      <p>本工具（以下简称"本工具"）由个人开发者提供，仅供<strong>技术学习、研究及个人合法用途</strong>，用于将合法网站快速封装为 Android 应用程序。</p>
+
+      <p><strong>🚫 严禁将本工具用于以下任何用途：</strong></p>
+      <p>
+        ❌ 制作仿冒、钓鱼、诈骗类应用程序<br>
+        ❌ 封装涉及赌博、色情、暴力或其他违法内容的网站<br>
+        ❌ 冒充银行、支付平台、政府机构或其他正规机构<br>
+        ❌ 侵犯他人知识产权、商标权或隐私权<br>
+        ❌ 传播恶意软件、间谍软件或任何有害程序<br>
+        ❌ 任何违反中华人民共和国及使用者所在地法律法规的行为
+      </p>
+
+      <p><strong>⚖️ 法律责任声明：</strong></p>
+      <p>使用本工具打包的应用程序，其内容、用途及由此产生的<strong>一切法律责任均由使用者自行承担</strong>。本工具开发者不对任何滥用行为及其后果承担连带责任。</p>
+
+      <p><strong>🔍 监管与处置：</strong></p>
+      <p>开发者保留对滥用行为进行举报的权利，并有权随时终止向违规用户提供服务。若发现使用本工具从事违法犯罪活动，开发者将积极配合相关执法机构的调查。</p>
+
+      <p style="color:#d97706;font-size:12px">⚠️ 诈骗分子请注意：网络并非法外之地，使用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。</p>
     </div>
     <label class="disc-checkbox-row">
-      <input type="checkbox" id="discRemember"> 我已阅读并同意，不再显示此提示
+      <input type="checkbox" id="discRemember"> 我已阅读并理解以上全部内容，本人承诺合法合规使用
     </label>
     <div class="disc-actions">
       <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意，离开</button>
-      <button class="disc-accept" onclick="acceptDisclaimer()">我已阅读，同意并继续</button>
+      <button class="disc-accept" onclick="acceptDisclaimer()">同意并继续使用</button>
     </div>
   </div>
 </div>
@@ -700,7 +711,12 @@ footer{border-top-color:var(--border);color:var(--faint)}
 
 </div>
 
-<footer></footer>
+<footer>
+  <p style="font-size:12px;color:var(--faint);text-align:center;padding:12px 16px;line-height:1.6;max-width:600px;margin:0 auto">
+    本工具仅供合法用途。禁止用于制作诈骗、钓鱼或任何违法应用。使用者须对其打包内容承担全部法律责任。
+    <br>如发现滥用行为，开发者将配合相关执法机构处理。
+  </p>
+</footer>
 
 <script>
 const WORKER = '';
