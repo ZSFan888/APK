@@ -28,7 +28,7 @@ class DisclaimerActivity : AppCompatActivity() {
 
             appendLine("一、工具性质与适用范围")
             appendLine()
-            appendLine("本应用（以下简称"本工具"）是一款将网页封装为 Android 应用程序的技术性工具，由个人开发者独立开发并以开源方式发布。本工具本身不存储、不处理、不传输任何用户数据，不内置任何网页内容，所有页面内容均由使用者自行填入的目标网址决定。")
+            appendLine("本应用（以下简称'本工具'）是一款将网页封装为 Android 应用程序的技术性工具，由个人开发者独立开发并以开源方式发布。本工具本身不存储、不处理、不传输任何用户数据，不内置任何网页内容，所有页面内容均由使用者自行填入的目标网址决定。")
             appendLine()
 
             appendLine("二、使用者身份确认")
@@ -53,7 +53,7 @@ class DisclaimerActivity : AppCompatActivity() {
 
             appendLine("四、开发者责任豁免声明")
             appendLine()
-            appendLine("本工具以"现状"提供，开发者在法律允许的最大范围内明确声明：")
+            appendLine("本工具以'现状'提供，开发者在法律允许的最大范围内明确声明：")
             appendLine()
             appendLine("1. 本工具仅提供技术封装能力，对使用者填入的网址内容、目标网站的合法性及其产生的后果不承担任何责任。")
             appendLine()
