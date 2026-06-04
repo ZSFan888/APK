@@ -105,11 +105,15 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                // 注入标识，告知网页当前在 App 内运行，跳过网页版免责声明弹窗
+                view.evaluateJavascript("window.__IN_APP__ = true;", null)
                 showOverlay()
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
+                // 再次注入确保 SPA 路由切换后也生效
+                view.evaluateJavascript("window.__IN_APP__ = true;", null)
                 fetchThemeColor(view)
             }
 
