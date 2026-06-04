@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️ 使用须知 &amp; 免责声明"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#111111"
+            android:layout_marginBottom="6dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="请在使用前仔细阅读，继续使用即表示您同意以下全部条款"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textColor="#444444"
+            android:lineSpacingMultiplier="1.7"
+            android:layout_marginBottom="20dp"
+            android:text="本应用（以下简称"本应用"）仅供技术学习、研究及个人合法用途使用。
+
+🚫 严禁将本应用用于以下任何用途：
+
+❌ 实施网络诈骗、钓鱼攻击
+❌ 冒充银行、支付平台或政府机构
+❌ 传播违法、赌博、色情或有害内容
+❌ 侵犯他人知识产权、商标权或隐私权
+❌ 任何违反中华人民共和国及所在地法律法规的行为
+
+⚖️ 法律责任声明：
+
+本应用的内容及用途由使用者自行决定，由此产生的一切法律责任均由使用者自行承担，开发者不承担连带责任。
+
+⚠️ 警示：网络并非法外之地，利用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。"/>
+
+        <CheckBox
+            android:id="@+id/cbRemember"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="我已阅读并理解以上内容，承诺合法合规使用"
+            android:textSize="13sp"
+            android:textColor="#333333"
+            android:layout_marginBottom="16dp"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="12dp">
+
+            <Button
+                android:id="@+id/btnDecline"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="不同意，退出"
+                android:textSize="14sp"
+                android:backgroundTint="#F5F5F5"
+                android:textColor="#555555"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnAccept"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="2"
+                android:text="同意并继续"
+                android:textSize="14sp"
+                android:backgroundTint="#111111"
+                android:textColor="#FFFFFF"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
