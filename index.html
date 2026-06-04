@@ -1422,8 +1422,14 @@ function updateThemeIcon(dark){
 </script>
 
 <script>
-// 免责声明：每次访问都显示，需滚动到底才能同意
+// 免责声明：每次访问都显示（浏览器），App 内访问跳过
 (function(){
+  // App 内通过 WebView 注入了 window.__IN_APP__，跳过弹窗
+  if(window.__IN_APP__){
+    var overlay=document.getElementById('disclaimerOverlay');
+    if(overlay) overlay.style.display='none';
+    return;
+  }
   var body = document.getElementById('discBody');
   var hint = document.getElementById('discScrollHint');
   var tip  = document.getElementById('discScrollTip');
