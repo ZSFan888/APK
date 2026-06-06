@@ -375,12 +375,33 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == FILE_CHOOSER_REQUEST) {
-            fileChooserCallbackRef?.onReceiveValue(
-                if (resultCode == RESULT_OK && data != null)
-                    WebChromeClient.FileChooserParams.parseResult(resultCode, data)
-                else null
-            )
+            val results: Array<Uri>? = if (resultCode == RESULT_OK) {
+                when {
+                    // 相机拍照：data 为 null 或 data.data 为 null
+                    (data == null || data.data == null) && cameraImageUri != null -> {
+                        arrayOf(cameraImageUri!!)
+                    }
+                    // 多选文件
+                    data?.clipData != null -> {
+                        val clip = data.clipData!!
+                        Array(clip.itemCount) { i ->
+                            clip.getItemAt(i).uri.also { uri ->
+                                try { contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+                            }
+                        }
+                    }
+                    // 单选文件
+                    data?.data != null -> {
+                        val uri = data.data!!
+                        try { contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
+                        arrayOf(uri)
+                    }
+                    else -> null
+                }
+            } else null
+            fileChooserCallbackRef?.onReceiveValue(results)
             fileChooserCallbackRef = null
+            cameraImageUri = null
         }
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
