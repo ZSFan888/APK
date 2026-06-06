@@ -134,7 +134,23 @@ class MainActivity : AppCompatActivity() {
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) {
-                    swipeRefresh.isRefreshing = false  // 修复：错误时也要停止下拉刷新
+                    swipeRefresh.isRefreshing = false
+                    handler.removeCallbacks(delayHideRunnable)
+                    hideOverlay()
+                    view.loadData(errorHtml(), "text/html", "UTF-8")
+                }
+            }
+
+            // 修复：SSL 证书错误默认会取消加载白屏，直接放行
+            @Suppress("WebViewClientOnReceivedSslError")
+            override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
+                handler.proceed()
+            }
+
+            // 修复：HTTP 4xx/5xx 错误显示友好页面
+            override fun onReceivedHttpError(view: WebView, request: WebResourceRequest, errorResponse: android.webkit.WebResourceResponse) {
+                if (request.isForMainFrame && (errorResponse.statusCode >= 400)) {
+                    swipeRefresh.isRefreshing = false
                     handler.removeCallbacks(delayHideRunnable)
                     hideOverlay()
                     view.loadData(errorHtml(), "text/html", "UTF-8")
@@ -291,12 +307,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onPause() { super.onPause(); CookieManager.getInstance().flush() }
+    override fun onResume() {
+        super.onResume()
+        webView.onResume()          // 恢复 JS 执行、视频播放
+        webView.resumeTimers()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        webView.onPause()           // 暂停 JS 执行，省电
+        webView.pauseTimers()
+        CookieManager.getInstance().flush()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        CookieManager.getInstance().flush()  // 强杀时也持久化 Cookie
+    }
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         // 清理文件选择回调，防止内存泄漏
         fileChooserCallbackRef?.onReceiveValue(null)
         fileChooserCallbackRef = null
+        // 先从父布局移除再 destroy，防止 WebView 内存泄漏
+        (webView.parent as? android.view.ViewGroup)?.removeView(webView)
         webView.destroy()
         super.onDestroy()
     }
