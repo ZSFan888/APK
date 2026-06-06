@@ -82,7 +82,7 @@ class DisclaimerActivity : AppCompatActivity() {
         // 一
         sb.appendBold("一、工具性质与适用范围")
         sb.append("\n\n")
-        sb.append("Pakr（以下简称"Pakr"）由个人开发者ZSFan独立开发并以开源方式发布，仅供")
+        sb.append("Pakr（以下简称\"Pakr\"）由个人开发者ZSFan独立开发并以开源方式发布，仅供")
         sb.appendBold("技术学习、研究及个人合法用途")
         sb.append("使用，用于将合法网站快速封装为 Android 应用程序。Pakr本身不存储、不处理、不传输任何用户数据，不内置任何网页内容，所有页面内容均由使用者自行填入的目标网址决定。")
         sb.append("\n\n")
@@ -118,7 +118,7 @@ class DisclaimerActivity : AppCompatActivity() {
         // 四
         sb.appendBold("四、开发者ZSFan责任豁免声明")
         sb.append("\n\n")
-        sb.append("Pakr以"现状"提供，开发者ZSFan在法律允许的最大范围内明确声明：\n\n")
+        sb.append("Pakr以\"现状\"提供，开发者ZSFan在法律允许的最大范围内明确声明：\n\n")
         sb.append("1. Pakr仅提供技术封装能力，对使用者填入的网址内容、目标网站合法性及其产生的后果")
         sb.appendBold("不承担任何责任")
         sb.append("。\n\n")
