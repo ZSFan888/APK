@@ -26,7 +26,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="请阅读以下条款，勾选同意后方可继续使用"
+            android:text="请在使用前仔细阅读，继续使用即表示您同意以下全部条款"
             android:textSize="13sp"
             android:textColor="#999999"
             android:layout_marginTop="4dp"/>
@@ -69,14 +69,14 @@
         android:id="@+id/cbAgree"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="我已阅读并同意以上全部条款"
+        android:text="我已阅读并理解以上内容，承诺合法合规使用"
         android:textSize="14sp"
         android:textColor="#333333"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:paddingTop="14dp"
         android:paddingBottom="14dp"
-        android:buttonTint="#0D0D0D"/>
+        android:button="@drawable/cb_circle_selector"/>
 
     <!-- 按钮区 -->
     <LinearLayout
