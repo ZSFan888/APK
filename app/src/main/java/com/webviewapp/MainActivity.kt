@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
+                hideOverlay()
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -224,7 +225,7 @@ class MainActivity : AppCompatActivity() {
         dotsIndex = 0
         handler.post(dotsRunnable)
         handler.removeCallbacks(timeoutRunnable)
-        handler.postDelayed(timeoutRunnable, 10_000L)
+        handler.postDelayed(timeoutRunnable, 30_000L)
     }
 
     private fun hideOverlay() {
