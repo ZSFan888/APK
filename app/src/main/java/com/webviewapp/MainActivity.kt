@@ -86,6 +86,8 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun setupWebView() {
+        // 防止加载过程中白屏：设置 WebView 背景与 overlay 一致
+        webView.setBackgroundColor(android.graphics.Color.WHITE)
         webView.settings.apply {
             javaScriptEnabled                = true
             domStorageEnabled                = true
@@ -104,23 +106,28 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                // 只对主框架跳转显示 loading，避免重定向中途闪白屏
                 showOverlay()
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
-                hideOverlay()
+                // 兜底：页面完成时确保 overlay 消失
+                handler.postDelayed({ hideOverlay() }, 300)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
+                // 非 http/https 协议（如 intent://, mailto:）交给系统处理
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
                     try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
                     return true
                 }
+                // http/https 全部在 WebView 内处理，包括 OAuth 重定向
                 return false
             }
+
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) {
                     hideOverlay()
@@ -131,7 +138,8 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 progressBar.setProgress(newProgress)
-                if (newProgress >= 75) hideOverlay()
+                // 进度达到85%就隐藏，不等 onPageFinished，体验更流畅
+                if (newProgress >= 85) hideOverlay()
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
