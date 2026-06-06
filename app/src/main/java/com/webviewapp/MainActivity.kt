@@ -291,7 +291,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    }
 
     companion object {
         const val APP_URL = "{{APP_URL}}"
