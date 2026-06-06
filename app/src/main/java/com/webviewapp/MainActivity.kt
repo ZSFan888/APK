@@ -182,11 +182,31 @@ class MainActivity : AppCompatActivity() {
                 filePathCallback: ValueCallback<Array<Uri>>,
                 fileChooserParams: WebChromeClient.FileChooserParams
             ): Boolean {
+                fileChooserCallbackRef?.onReceiveValue(null)
+                fileChooserCallbackRef = filePathCallback
                 try {
-                    startActivityForResult(fileChooserParams.createIntent(), FILE_CHOOSER_REQUEST)
-                    fileChooserCallbackRef = filePathCallback
+                    // 创建相机临时文件
+                    val photoFile = java.io.File(
+                        cacheDir,
+                        "webview_uploads/camera_${System.currentTimeMillis()}.jpg"
+                    ).also { it.parentFile?.mkdirs() }
+                    cameraImageUri = androidx.core.content.FileProvider.getUriForFile(
+                        this@MainActivity,
+                        "${packageName}.fileprovider",
+                        photoFile
+                    )
+                    val cameraIntent = android.content.Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                        putExtra(android.provider.MediaStore.EXTRA_OUTPUT, cameraImageUri)
+                        addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                    }
+                    val fileIntent = fileChooserParams.createIntent()
+                    val chooser = android.content.Intent.createChooser(fileIntent, "选择图片").apply {
+                        putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
+                    }
+                    startActivityForResult(chooser, FILE_CHOOSER_REQUEST)
                 } catch (e: Exception) {
                     filePathCallback.onReceiveValue(null)
+                    fileChooserCallbackRef = null
                 }
                 return true
             }
@@ -350,6 +370,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
+    private var cameraImageUri: Uri? = null
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
