@@ -88,6 +88,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupWebView() {
         // 防止加载过程中白屏：设置 WebView 背景与 overlay 一致
         webView.setBackgroundColor(android.graphics.Color.WHITE)
+        webView.setBackgroundColor(android.graphics.Color.WHITE)
         webView.settings.apply {
             javaScriptEnabled                = true
             domStorageEnabled                = true
