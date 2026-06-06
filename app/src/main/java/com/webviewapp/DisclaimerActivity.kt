@@ -73,7 +73,9 @@ class DisclaimerActivity : AppCompatActivity() {
 
         cbAgree.setOnCheckedChangeListener { _, checked ->
             btnAccept.isEnabled = checked
-            btnAccept.animate().alpha(if (checked) 1f else 0.4f).setDuration(200).start()
+            if (!isFinishing) {
+                btnAccept.animate().alpha(if (checked) 1f else 0.4f).setDuration(200).start()
+            }
         }
 
         btnDecline.setOnClickListener { finishAffinity() }
