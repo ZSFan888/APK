@@ -9,6 +9,10 @@ import androidx.appcompat.app.AppCompatActivity
 
 @SuppressLint("CustomSplashScreen")
 class SplashActivity : AppCompatActivity() {
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var launchRunnable: Runnable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -22,15 +26,21 @@ class SplashActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
         val agreed = prefs.getBoolean("disc_agreed", false)
 
-        Handler(Looper.getMainLooper()).postDelayed({
-            if (agreed) {
-                // 已同意过，直接进主界面
-                startActivity(Intent(this, MainActivity::class.java))
-            } else {
-                // 首次启动，显示免责声明
-                startActivity(Intent(this, DisclaimerActivity::class.java))
+        launchRunnable = Runnable {
+            if (!isFinishing) {
+                if (agreed) {
+                    startActivity(Intent(this, MainActivity::class.java))
+                } else {
+                    startActivity(Intent(this, DisclaimerActivity::class.java))
+                }
+                finish()
             }
-            finish()
-        }, 800)
+        }
+        handler.postDelayed(launchRunnable!!, 800)
+    }
+
+    override fun onDestroy() {
+        launchRunnable?.let { handler.removeCallbacks(it) }
+        super.onDestroy()
     }
 }
