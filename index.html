@@ -542,6 +542,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
 /* CSS 图标替代 👇 */
 #disclaimerBox .disc-scroll-tip::before{content:'';display:inline-block;width:14px;height:14px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d97706' d='M12 16l-6-6h12l-6 6z'/%3E%3C/svg%3E") center/contain no-repeat;flex-shrink:0}
 #disclaimerBox .disc-actions{display:flex;gap:10px}
+#discToast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,0.75);color:#fff;font-size:13px;padding:9px 18px;border-radius:20px;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:100000;white-space:nowrap}
+#discToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #disclaimerBox .disc-decline{flex:1;padding:11px;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#555;font-size:14px;cursor:pointer;font-weight:500;transition:background .15s}
 #disclaimerBox .disc-decline:hover{background:#f5f5f5}
 #disclaimerBox .disc-accept{flex:2;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;transition:background .15s,opacity .15s}
@@ -559,7 +561,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
   <div id="disclaimerBox">
     <div class="disc-head">
       <h2>使用须知 &amp; 免责声明</h2>
-      <p class="disc-subtitle">请仔细阅读全部内容，滑动到底部后方可同意</p>
+      <p class="disc-subtitle">请在使用前仔细阅读，继续使用即表示您同意以下全部条款</p>
     </div>
     <div class="disc-body-wrap">
       <div class="disc-body" id="discBody">
@@ -606,10 +608,10 @@ footer{border-top-color:var(--border);color:var(--faint)}
       </div>
     </div>
     <div class="disc-foot">
-      <p class="disc-scroll-tip" id="discScrollTip">请先滚动阅读全部内容</p>
+      <!-- disc-scroll-tip 已移除 -->
       <div class="disc-actions">
-        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意，离开</button>
-        <button class="disc-accept" id="discAcceptBtn" onclick="tryAcceptDisclaimer()" disabled>已读完，同意继续</button>
+        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意</button>
+        <button class="disc-accept unlocked" id="discAcceptBtn" onclick="tryAcceptDisclaimer()">同意并继续</button>
       </div>
     </div>
   </div>
@@ -1444,37 +1446,41 @@ function updateThemeIcon(dark){
 // 免责声明：浏览器访问显示，App 内（PakrApp UA）跳过
 (function(){
   var overlay=document.getElementById('disclaimerOverlay');
-  // App 内 WebView UA 含 PakrApp，直接不显示
-  if(navigator.userAgent && navigator.userAgent.indexOf('PakrApp') !== -1){
-    return;
-  }
-  // 浏览器访问：显示弹窗
+  if(navigator.userAgent && navigator.userAgent.indexOf('PakrApp') !== -1) return;
   if(overlay) overlay.style.display='flex';
   var body = document.getElementById('discBody');
   var hint = document.getElementById('discScrollHint');
-  var tip  = document.getElementById('discScrollTip');
-  var btn  = document.getElementById('discAcceptBtn');
   if(!body) return;
 
   function checkScrolled(){
     var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
-    if(atBottom){
-      if(hint) hint.style.opacity = '0';
-      if(tip)  tip.style.opacity  = '0';
-      if(btn){ btn.disabled = false; btn.classList.add('unlocked'); }
-    }
+    if(atBottom && hint) hint.style.opacity = '0';
   }
-
   body.addEventListener('scroll', checkScrolled);
-  // 内容很短时直接解锁
   setTimeout(function(){
     if(body.scrollHeight <= body.clientHeight + 8) checkScrolled();
   }, 200);
 })();
 
+var _discToastTimer = null;
+function showDiscToast(msg){
+  var t = document.getElementById('discToast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  if(_discToastTimer) clearTimeout(_discToastTimer);
+  _discToastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+
 function tryAcceptDisclaimer(){
-  var btn = document.getElementById('discAcceptBtn');
-  if(!btn || btn.disabled) return;
+  var body = document.getElementById('discBody');
+  if(body){
+    var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 40;
+    if(!atBottom){
+      showDiscToast('请先滑动阅读全部内容');
+      return;
+    }
+  }
   acceptDisclaimer();
 }
 
@@ -1484,6 +1490,7 @@ function acceptDisclaimer(){
 }
 </script>
 
+<div id="discToast">请先阅读全部内容</div>
 </body>
 </html>
 
