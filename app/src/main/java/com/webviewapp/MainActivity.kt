@@ -211,12 +211,14 @@ class MainActivity : AppCompatActivity() {
                 try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) {}
             }
         }
-        // 键盘弹出适配：FLAG_FULLSCREEN 下 adjustResize 失效，手动监听 Insets
-        val rootView = window.decorView.rootView
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
-            val imeHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime()).bottom
-            val navHeight = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).bottom
-            webView.setPadding(0, 0, 0, if (imeHeight > 0) imeHeight - navHeight else 0)
+        // 键盘弹出适配：全屏模式下 adjustResize 失效，手动监听 IME Insets 调整容器高度
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(swipeRefresh) { view, insets ->
+            val imeInsets = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.ime())
+            val lp = view.layoutParams as android.widget.FrameLayout.LayoutParams
+            lp.bottomMargin = imeInsets.bottom
+            view.layoutParams = lp
+            // WebView padding 清零，用 marginBottom 控制
+            webView.setPadding(0, 0, 0, 0)
             insets
         }
 
