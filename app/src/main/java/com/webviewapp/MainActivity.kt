@@ -50,7 +50,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private val timeoutRunnable = Runnable { hideOverlay() }
+    private val timeoutRunnable  = Runnable { hideOverlay() }
+    // 用命名 Runnable 管理延迟隐藏，确保可被 removeCallbacks 取消
+    private val delayHideRunnable = Runnable { hideOverlay() }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -107,30 +109,33 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-                // 只对主框架跳转显示 loading，避免重定向中途闪白屏
+                // 只对主框架（非 iframe 子资源）显示 loading
                 showOverlay()
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
-                // 兜底：页面完成时确保 overlay 消失
-                handler.postDelayed({ hideOverlay() }, 300)
+                // 取消之前的延迟隐藏，重新用命名 Runnable 调度，防止多次跳转积累
+                handler.removeCallbacks(delayHideRunnable)
+                handler.postDelayed(delayHideRunnable, 300)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
-                // 非 http/https 协议（如 intent://, mailto:）交给系统处理
+                // 非 http/https 协议（intent://, mailto:, tel: 等）交给系统处理
                 if (!url.startsWith("http://") && !url.startsWith("https://")) {
                     try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) } catch (e: Exception) {}
                     return true
                 }
-                // http/https 全部在 WebView 内处理，包括 OAuth 重定向
+                // http/https 全部在 WebView 内处理，包括 OAuth/SSO 重定向
                 return false
             }
 
             override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame) {
+                    swipeRefresh.isRefreshing = false  // 修复：错误时也要停止下拉刷新
+                    handler.removeCallbacks(delayHideRunnable)
                     hideOverlay()
                     view.loadData(errorHtml(), "text/html", "UTF-8")
                 }
@@ -139,8 +144,13 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 progressBar.setProgress(newProgress)
-                // 进度达到85%就隐藏，不等 onPageFinished，体验更流畅
-                if (newProgress >= 85) hideOverlay()
+                // 新页面开始加载时（progress 重置为低值）补充触发 showOverlay
+                if (newProgress <= 5) showOverlay()
+                // 进度达到 85% 立即隐藏，不等 onPageFinished
+                if (newProgress >= 85) {
+                    handler.removeCallbacks(delayHideRunnable)
+                    hideOverlay()
+                }
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
@@ -282,7 +292,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() { super.onPause(); CookieManager.getInstance().flush() }
-    override fun onDestroy() { handler.removeCallbacksAndMessages(null); webView.destroy(); super.onDestroy() }
+    override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
+        // 清理文件选择回调，防止内存泄漏
+        fileChooserCallbackRef?.onReceiveValue(null)
+        fileChooserCallbackRef = null
+        webView.destroy()
+        super.onDestroy()
+    }
 
     private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
 
