@@ -41,6 +41,6 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:windowLayoutInDisplayCutoutMode="shortEdges"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustNothing" />
     </application>
 </manifest>
