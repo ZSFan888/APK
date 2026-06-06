@@ -83,6 +83,8 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setColorSchemeColors(
             android.graphics.Color.parseColor("#6366F1")
         )
+        // 提高下拉刷新触发阈值，减少误触
+        swipeRefresh.setProgressViewOffset(false, 0, 160)
         swipeRefresh.setOnRefreshListener {
             webView.reload()
         }
@@ -251,9 +253,15 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {}
             }
         }, "ThemeBridge")
-        // 在 UserAgent 中加入 App 标识，网页端据此跳过免责声明弹窗
+        // UA：去掉 "wv" 标识避免 CF/Google 将其识别为 WebView 并加强质询
+        // 保留 PakrApp/1.0 供网页端识别（跳过免责声明弹窗）
         val defaultUA = webView.settings.userAgentString
-        webView.settings.userAgentString = "$defaultUA PakrApp/1.0"
+        val cleanUA = defaultUA.replace("; wv", "").replace(" wv", "")
+        webView.settings.userAgentString = "$cleanUA PakrApp/1.0"
+        // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
+        webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            swipeRefresh.isEnabled = (scrollY == 0)
+        }
         webView.loadUrl(APP_URL)
     }
 
