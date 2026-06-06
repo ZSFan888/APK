@@ -1452,9 +1452,14 @@ function updateThemeIcon(dark){
   var hint = document.getElementById('discScrollHint');
   if(!body) return;
 
+  var _discReadAll = false;
+
   function checkScrolled(){
     var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
-    if(atBottom && hint) hint.style.opacity = '0';
+    if(atBottom){
+      _discReadAll = true;
+      if(hint) hint.style.opacity = '0';
+    }
   }
   body.addEventListener('scroll', checkScrolled);
   setTimeout(function(){
@@ -1473,12 +1478,14 @@ function showDiscToast(msg){
 }
 
 function tryAcceptDisclaimer(){
-  var body = document.getElementById('discBody');
-  if(body){
-    var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 40;
-    if(!atBottom){
-      showDiscToast('请先滑动阅读全部内容');
-      return;
+  if(typeof _discReadAll === 'undefined' || !_discReadAll){
+    var body = document.getElementById('discBody');
+    if(body){
+      var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 40;
+      if(!atBottom){
+        showDiscToast('请先滑动阅读全部内容');
+        return;
+      }
     }
   }
   acceptDisclaimer();
