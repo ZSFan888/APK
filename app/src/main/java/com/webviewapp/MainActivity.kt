@@ -113,7 +113,9 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-                // 只对主框架（非 iframe 子资源）显示 loading
+                // 每次新页面开始都重置超时计时器，防止连续跳转时计时器过早触发
+                handler.removeCallbacks(timeoutRunnable)
+                handler.postDelayed(timeoutRunnable, 30_000L)
                 showOverlay()
             }
 
@@ -256,12 +258,14 @@ class MainActivity : AppCompatActivity() {
     private fun showOverlay() {
         if (overlayVisible) return
         overlayVisible = true
+        overlay.animate().cancel()   // 取消正在进行的淡出动画
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
         progressBar.visibility = View.VISIBLE
         progressBar.setProgress(0)
         spinner.start()
         dotsIndex = 0
+        handler.removeCallbacks(dotsRunnable)
         handler.post(dotsRunnable)
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, 30_000L)
@@ -272,10 +276,14 @@ class MainActivity : AppCompatActivity() {
         handler.removeCallbacks(timeoutRunnable)
         handler.removeCallbacks(dotsRunnable)
         overlayVisible = false
+        overlay.animate().cancel()
         overlay.animate().alpha(0f).setDuration(300).withEndAction {
-            overlay.visibility = View.GONE
-            spinner.stop()
-            progressBar.visibility = View.GONE
+            // 守卫：动画期间如果 showOverlay 再次被触发，不强制隐藏
+            if (!overlayVisible) {
+                overlay.visibility = View.GONE
+                spinner.stop()
+                progressBar.visibility = View.GONE
+            }
         }.start()
     }
 
