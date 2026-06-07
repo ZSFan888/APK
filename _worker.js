@@ -28,8 +28,8 @@ export default {
 async function handleBuild(request, env) {
   const { app_url, app_name, package_name, version_name, icon_url } = await request.json();
   const buildId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-  if (!app_url || !app_name || !package_name || !version_name || !icon_url)
-    return json({ error: 'Missing required fields', detail: 'icon_url is required' }, 400);
+  if (!app_url || !app_name || !package_name || !version_name)
+    return json({ error: 'Missing required fields' }, 400);
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/;
   if (!pkgRe.test(package_name))
     return json({ error: 'Invalid package name' }, 400);
@@ -46,7 +46,7 @@ async function handleBuild(request, env) {
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url: icon_url || `${new URL(app_url).origin}/logo.jpg` }
+        inputs: { app_url, app_name, package_name, version_name, icon_url: icon_url || '' }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
