@@ -94,9 +94,9 @@ class MainActivity : AppCompatActivity() {
         // 提高下拉刷新触发阈值，减少误触
         swipeRefresh.setProgressViewOffset(false, 0, 160)
         swipeRefresh.setOnRefreshListener {
-            // 强制立即显示 overlay，防止 reload 清空页面瞬间白屏
             forceShowOverlay()
-            webView.reload()
+            // 稍等 50ms 再 reload，确保 overlay 已完全显示后才清空页面
+            handler.postDelayed({ webView.reload() }, 50)
         }
         showOverlay()
         setupWebView()
@@ -136,7 +136,7 @@ class MainActivity : AppCompatActivity() {
                 fetchThemeColor(view)
                 // 取消之前的延迟隐藏，重新用命名 Runnable 调度，防止多次跳转积累
                 handler.removeCallbacks(delayHideRunnable)
-                handler.postDelayed(delayHideRunnable, 300)
+                handler.postDelayed(delayHideRunnable, 800)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -398,8 +398,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        webView.onResume()          // 恢复 JS 执行、视频播放
+        webView.onResume()
         webView.resumeTimers()
+        // 从后台切回时，WebView 可能短暂白屏；用 overlay 遮盖，500ms 后淡出
+        if (!webView.url.isNullOrEmpty() && !overlayVisible) {
+            overlay.animate().cancel()
+            overlay.alpha = 1f
+            overlay.visibility = View.VISIBLE
+            handler.postDelayed({
+                overlay.animate().alpha(0f).setDuration(300).withEndAction {
+                    overlay.visibility = View.GONE
+                }.start()
+            }, 500)
+        }
     }
 
     override fun onPause() {
