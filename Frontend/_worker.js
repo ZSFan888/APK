@@ -9,7 +9,31 @@ const GH = 'https://api.github.com';
 
 export default {
   async fetch(request, env, ctx) {
-    return handleRequest(request, env);
+    if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+    const url = new URL(request.url);
+    try {
+      let res;
+      if      (url.pathname === '/build'    && request.method === 'POST') res = await handleBuild(request, env);
+      else if (url.pathname === '/status'   && request.method === 'GET')  res = await handleStatus(request, env);
+      else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
+      else {
+        // SPA fallback：所有非 API 路径（包括刷新）都返回 index.html
+        const assetReq = url.pathname === '/' || url.pathname === ''
+          ? request
+          : new Request(new URL('/', request.url).toString(), request);
+        return env.ASSETS ? cors(await env.ASSETS.fetch(assetReq)) : new Response('Not found', { status: 404 });
+      }
+      return cors(res);
+    } catch (e) {
+      // 发生异常也 fallback 到静态页面，不让白屏
+      if (env.ASSETS) {
+        try {
+          const fallback = new Request(new URL('/', request.url).toString(), { method: 'GET', headers: request.headers });
+          return cors(await env.ASSETS.fetch(fallback));
+        } catch (_) {}
+      }
+      return cors(json({ error: e.message }, 500));
+    }
   }
 };
 
@@ -239,7 +263,7 @@ const json  = (d, s = 200) => new Response(JSON.stringify(d), {
   status: s, headers: { 'Content-Type': 'application/json' }
 });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const cors  = (res, env) => {
+const cors  = (res) => {
   const h = new Headers(res.headers);
   h.set('Access-Control-Allow-Origin',  '*');
   h.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
