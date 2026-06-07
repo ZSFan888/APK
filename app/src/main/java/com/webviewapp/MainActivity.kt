@@ -91,8 +91,16 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setColorSchemeColors(
             android.graphics.Color.parseColor("#6366F1")
         )
-        // 提高下拉刷新触发阈值，减少误触
-        swipeRefresh.setProgressViewOffset(false, 0, 160)
+        // 触发距离设为 140dp（接近 Chrome），避免轻划误触
+        val density = resources.displayMetrics.density
+        val triggerDp = 140
+        try {
+            val field = androidx.swiperefreshlayout.widget.SwipeRefreshLayout::class.java
+                .getDeclaredField("mTotalDragDistance")
+            field.isAccessible = true
+            field.setFloat(swipeRefresh, triggerDp * density)
+        } catch (_: Exception) {}
+        swipeRefresh.setProgressViewOffset(false, 0, (triggerDp * density).toInt())
         swipeRefresh.setOnRefreshListener {
             forceShowOverlay()
             // 稍等 50ms 再 reload，确保 overlay 已完全显示后才清空页面
