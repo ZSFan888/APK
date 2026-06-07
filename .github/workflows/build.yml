@@ -16,8 +16,9 @@ on:
         required: true
         default: 1.0.0
       icon_url:
-        description: Icon Image URL
-        required: true
+        description: Icon Image URL (optional, leave empty to use repo logo.jpg)
+        required: false
+        default: ''
 jobs:
   build:
     runs-on: ubuntu-latest
