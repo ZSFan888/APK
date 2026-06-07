@@ -345,37 +345,6 @@ class MainActivity : AppCompatActivity() {
         edgeRight.setOnTouchListener { _, e -> rightGesture.onTouchEvent(e) }
     }
 
-    // 边缘滑动手势：左边缘右滑=后退，右边缘左滑=前进
-    @android.annotation.SuppressLint("ClickableViewAccessibility")
-    private fun setupEdgeSwipe() {
-        val edgeLeft  = findViewById<View>(R.id.edgeLeft)
-        val edgeRight = findViewById<View>(R.id.edgeRight)
-
-        fun makeGesture(onSwipeRight: (() -> Unit)? = null, onSwipeLeft: (() -> Unit)? = null)
-            = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-                override fun onDown(e: MotionEvent) = true
-                override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
-                    val dx = e2.x - (e1?.x ?: e2.x)
-                    val dy = e2.y - (e1?.y ?: e2.y)
-                    if (abs(dx) < EDGE_SWIPE_MIN_X) return false
-                    if (abs(dy) > EDGE_SWIPE_MAX_Y) return false
-                    if (abs(vx) < EDGE_SWIPE_MIN_V) return false
-                    return if (dx > 0) { onSwipeRight?.invoke(); onSwipeRight != null }
-                    else               { onSwipeLeft?.invoke();  onSwipeLeft  != null }
-                }
-            })
-
-        val leftGesture  = makeGesture(onSwipeRight = {
-            if (webView.canGoBack()) webView.goBack()
-        })
-        val rightGesture = makeGesture(onSwipeLeft = {
-            if (webView.canGoForward()) webView.goForward()
-        })
-
-        edgeLeft.setOnTouchListener  { _, e -> leftGesture.onTouchEvent(e) }
-        edgeRight.setOnTouchListener { _, e -> rightGesture.onTouchEvent(e) }
-    }
-
     // 强制显示 overlay，不受 overlayVisible 守卫限制（用于 reload 等场景）
     private fun forceShowOverlay() {
         overlayVisible = false
