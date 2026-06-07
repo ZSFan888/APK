@@ -86,6 +86,8 @@ class MainActivity : AppCompatActivity() {
         // 提高下拉刷新触发阈值，减少误触
         swipeRefresh.setProgressViewOffset(false, 0, 160)
         swipeRefresh.setOnRefreshListener {
+            // 强制立即显示 overlay，防止 reload 清空页面瞬间白屏
+            forceShowOverlay()
             webView.reload()
         }
         showOverlay()
@@ -115,10 +117,9 @@ class MainActivity : AppCompatActivity() {
         }
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
-                // 每次新页面开始都重置超时计时器，防止连续跳转时计时器过早触发
-                handler.removeCallbacks(timeoutRunnable)
-                handler.postDelayed(timeoutRunnable, 30_000L)
-                showOverlay()
+                // 每次新页面/刷新必须强制显示 overlay，不受上次状态影响
+                handler.removeCallbacks(delayHideRunnable)
+                forceShowOverlay()
             }
 
             override fun onPageFinished(view: WebView, url: String) {
@@ -170,10 +171,10 @@ class MainActivity : AppCompatActivity() {
                 progressBar.setProgress(newProgress)
                 // 新页面开始加载时（progress 重置为低值）补充触发 showOverlay
                 if (newProgress <= 5) showOverlay()
-                // 进度达到 85% 立即隐藏，不等 onPageFinished
-                if (newProgress >= 85) {
+                // 进度到 95% 才触发隐藏（给 SPA 留渲染时间），onPageFinished 会做最终隐藏
+                if (newProgress >= 95) {
                     handler.removeCallbacks(delayHideRunnable)
-                    hideOverlay()
+                    handler.postDelayed(delayHideRunnable, 400)
                 }
             }
             override fun onPermissionRequest(request: PermissionRequest) {
@@ -288,7 +289,7 @@ class MainActivity : AppCompatActivity() {
     private fun showOverlay() {
         if (overlayVisible) return
         overlayVisible = true
-        overlay.animate().cancel()   // 取消正在进行的淡出动画
+        overlay.animate().cancel()
         overlay.alpha = 1f
         overlay.visibility = View.VISIBLE
         progressBar.visibility = View.VISIBLE
@@ -299,6 +300,12 @@ class MainActivity : AppCompatActivity() {
         handler.post(dotsRunnable)
         handler.removeCallbacks(timeoutRunnable)
         handler.postDelayed(timeoutRunnable, 30_000L)
+    }
+
+    // 强制显示 overlay，不受 overlayVisible 守卫限制（用于 reload 等场景）
+    private fun forceShowOverlay() {
+        overlayVisible = false
+        showOverlay()
     }
 
     private fun hideOverlay() {
