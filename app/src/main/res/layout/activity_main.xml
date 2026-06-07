@@ -30,4 +30,16 @@
         android:layout_width="match_parent" android:layout_height="4dp"
         android:layout_gravity="top" android:elevation="8dp"
         android:visibility="gone" />
+    <!-- 左边缘滑动感应区（右滑=后退） -->
+    <View android:id="@+id/edgeLeft"
+        android:layout_width="20dp" android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="@android:color/transparent"
+        android:elevation="4dp" />
+    <!-- 右边缘滑动感应区（左滑=前进） -->
+    <View android:id="@+id/edgeRight"
+        android:layout_width="20dp" android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:background="@android:color/transparent"
+        android:elevation="4dp" />
 </FrameLayout>
