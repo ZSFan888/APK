@@ -11,7 +11,6 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
 import android.text.style.StyleSpan
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -28,55 +27,44 @@ class DisclaimerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_disclaimer)
 
         val tvBody     = findViewById<TextView>(R.id.tvDisclaimerBody)
-        val cbAgree    = findViewById<CheckBox>(R.id.cbAgree)
+        val tvHint     = findViewById<TextView>(R.id.tvScrollHint)
         val btnDecline = findViewById<Button>(R.id.btnDecline)
         val btnAccept  = findViewById<Button>(R.id.btnAccept)
         val scrollView = findViewById<android.widget.ScrollView>(R.id.scrollDisclaimer)
 
         tvBody.text = buildDisclaimerText()
 
-        // 初始状态：未读完前 Checkbox 不可点击
-        cbAgree.isEnabled = false
-        cbAgree.alpha = 0.45f
+        // 初始：按钮禁用，提示条可见
         btnAccept.isEnabled = false
         btnAccept.alpha = 0.4f
 
         var hasScrolledToBottom = false
 
-        // 监听滚动，滚到底部一次后永久解锁 Checkbox
-        scrollView.setOnScrollChangeListener { v, _, scrollY, _, _ ->
-            if (!hasScrolledToBottom) {
-                val sv = v as android.widget.ScrollView
-                val child = sv.getChildAt(0)
-                val diff = child.bottom - (sv.height + scrollY)
-                if (diff <= 8) {
-                    hasScrolledToBottom = true
-                    cbAgree.isEnabled = true
-                    cbAgree.animate().alpha(1f).setDuration(200).start()
-                }
-            }
+        fun unlock() {
+            if (hasScrolledToBottom) return
+            hasScrolledToBottom = true
+            btnAccept.isEnabled = true
+            btnAccept.animate().alpha(1f).setDuration(200).start()
+            tvHint.animate().alpha(0f).setDuration(200).withEndAction {
+                tvHint.visibility = android.view.View.GONE
+            }.start()
         }
 
-        // 布局完成后检查内容是否本身就不超过屏幕（不需要滚动）
+        // 滚到底部一次后永久解锁按钮
+        scrollView.setOnScrollChangeListener { v, _, scrollY, _, _ ->
+            val sv = v as android.widget.ScrollView
+            val child = sv.getChildAt(0) ?: return@setOnScrollChangeListener
+            if (child.bottom - (sv.height + scrollY) <= 8) unlock()
+        }
+
+        // 内容不需要滚动时直接解锁
         scrollView.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
                 scrollView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val child = scrollView.getChildAt(0)
-                if (child != null && child.height <= scrollView.height) {
-                    // 内容不需要滚动，直接解锁
-                    hasScrolledToBottom = true
-                    cbAgree.isEnabled = true
-                    cbAgree.alpha = 1f
-                }
+                val child = scrollView.getChildAt(0) ?: return
+                if (child.height <= scrollView.height) unlock()
             }
         })
-
-        cbAgree.setOnCheckedChangeListener { _, checked ->
-            btnAccept.isEnabled = checked
-            if (!isFinishing) {
-                btnAccept.animate().alpha(if (checked) 1f else 0.4f).setDuration(200).start()
-            }
-        }
 
         btnDecline.setOnClickListener { finishAffinity() }
         btnAccept.setOnClickListener {
