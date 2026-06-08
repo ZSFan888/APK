@@ -142,9 +142,23 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
-                // 取消之前的延迟隐藏，重新用命名 Runnable 调度，防止多次跳转积累
                 handler.removeCallbacks(delayHideRunnable)
-                handler.postDelayed(delayHideRunnable, 800)
+                // 用 JS 检测页面真正渲染完成（两帧后），再隐藏 overlay
+                // 超时兜底：1200ms 强制隐藏
+                handler.postDelayed(delayHideRunnable, 1200)
+                view.evaluateJavascript("""
+                    (function(){
+                        function done(){
+                            requestAnimationFrame(function(){
+                                requestAnimationFrame(function(){
+                                    try{ window._pakrBridge.onPageReady(); }catch(e){}
+                                });
+                            });
+                        }
+                        if(document.readyState==='complete'){ done(); }
+                        else { window.addEventListener('load', done, {once:true}); }
+                    })();
+                """.trimIndent(), null)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -188,11 +202,7 @@ class MainActivity : AppCompatActivity() {
                 progressBar.setProgress(newProgress)
                 // 新页面开始加载时（progress 重置为低值）补充触发 showOverlay
                 if (newProgress <= 5) showOverlay()
-                // 进度到 95% 才触发隐藏（给 SPA 留渲染时间），onPageFinished 会做最终隐藏
-                if (newProgress >= 95) {
-                    handler.removeCallbacks(delayHideRunnable)
-                    handler.postDelayed(delayHideRunnable, 400)
-                }
+                // overlay 隐藏统一由 onPageFinished 负责，这里不再提前触发
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
@@ -271,6 +281,16 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {}
             }
         }, "ThemeBridge")
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun onPageReady() {
+                // JS 确认页面两帧后真正渲染完成，取消超时兜底并立即隐藏 overlay
+                handler.post {
+                    handler.removeCallbacks(delayHideRunnable)
+                    hideOverlay()
+                }
+            }
+        }, "_pakrBridge")
         // UA：去掉 "wv" 标识避免 CF/Google 将其识别为 WebView 并加强质询
         // 保留 PakrApp/1.0 供网页端识别（跳过免责声明弹窗）
         val defaultUA = webView.settings.userAgentString
@@ -408,16 +428,10 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         webView.onResume()
         webView.resumeTimers()
-        // 从后台切回时，WebView 可能短暂白屏；用 overlay 遮盖，500ms 后淡出
-        if (!webView.url.isNullOrEmpty() && !overlayVisible) {
-            overlay.animate().cancel()
-            overlay.alpha = 1f
-            overlay.visibility = View.VISIBLE
-            handler.postDelayed({
-                overlay.animate().alpha(0f).setDuration(300).withEndAction {
-                    overlay.visibility = View.GONE
-                }.start()
-            }, 500)
+        // 从后台切回时 WebView 内容可能短暂重绘为白；遮盖 400ms 后淡出
+        if (!webView.url.isNullOrEmpty()) {
+            forceShowOverlay()
+            handler.postDelayed({ hideOverlay() }, 400)
         }
     }
 
