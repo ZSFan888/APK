@@ -65,19 +65,18 @@
         android:layout_height="1dp"
         android:background="#EEEEEE"/>
 
-    <!-- Checkbox -->
-    <CheckBox
-        android:id="@+id/cbAgree"
+    <!-- 滚动提示条（未读完时显示） -->
+    <TextView
+        android:id="@+id/tvScrollHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="我已阅读并理解以上内容，承诺合法合规使用"
-        android:textSize="14sp"
-        android:textColor="#333333"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="14dp"
-        android:paddingBottom="14dp"
-        android:button="@drawable/cb_circle_selector"/>
+        android:text="↓  请向下滑动阅读全部内容"
+        android:textSize="12sp"
+        android:textColor="#F59E0B"
+        android:gravity="center"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:background="#FFFBEB"/>
 
     <!-- 按钮区 -->
     <LinearLayout
