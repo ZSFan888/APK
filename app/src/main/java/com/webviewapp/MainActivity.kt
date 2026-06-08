@@ -126,8 +126,23 @@ class MainActivity : AppCompatActivity() {
             builtInZoomControls              = false
             displayZoomControls              = false
             mediaPlaybackRequiresUserGesture = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            mixedContentMode                 = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowContentAccess               = true
+            allowFileAccess                  = true
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
         }
+        // 开启 Service Worker（支持 PWA 类网站）
+        try {
+            android.webkit.ServiceWorkerController.getInstance().serviceWorkerWebSettings?.apply {
+                allowContentAccess = true
+                allowFileAccess    = true
+            }
+            android.webkit.ServiceWorkerController.getInstance()
+                .setServiceWorkerClient(object : android.webkit.ServiceWorkerClient() {
+                    override fun shouldInterceptRequest(request: WebResourceRequest) = null
+                })
+        } catch (_: Exception) {}
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
@@ -206,6 +221,29 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
+            }
+            override fun onCreateWindow(
+                view: WebView, isDialog: Boolean, isUserGesture: Boolean, msg: android.os.Message
+            ): Boolean {
+                // target=_blank 等新窗口请求，在当前 WebView 内打开
+                val href = view.handler.obtainMessage()
+                view.requestFocusNodeHref(href)
+                val url = href.data?.getString("url")
+                if (!url.isNullOrEmpty()) view.loadUrl(url)
+                else {
+                    // 创建临时 WebView 获取新窗口 URL
+                    val child = WebView(view.context)
+                    child.webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(v: WebView, u: String, f: Bitmap?) {
+                            view.loadUrl(u)
+                            child.destroy()
+                        }
+                    }
+                    val transport = msg.obj as? WebView.WebViewTransport
+                    transport?.webView = child
+                    msg.sendToTarget()
+                }
+                return true
             }
             override fun onShowFileChooser(
                 webView: WebView,
@@ -291,10 +329,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：去掉 "wv" 标识避免 CF/Google 将其识别为 WebView 并加强质询
-        // 保留 PakrApp/1.0 供网页端识别（跳过免责声明弹窗）
+        // UA：完全去掉 WebView/"wv" 标识，模拟标准 Chrome 浏览器
+        // PakrApp 标识仍保留供网页端免责声明识别
         val defaultUA = webView.settings.userAgentString
-        val cleanUA = defaultUA.replace("; wv", "").replace(" wv", "")
+        val cleanUA = defaultUA
+            .replace(Regex("; wv\b"), "")
+            .replace(Regex("\bwv\b"), "")
+            .replace(Regex("Version/[0-9.]+ "), "")
         webView.settings.userAgentString = "$cleanUA PakrApp/1.0"
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
