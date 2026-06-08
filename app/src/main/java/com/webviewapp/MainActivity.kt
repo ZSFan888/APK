@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         )
         // 触发距离设为 140dp（接近 Chrome），避免轻划误触
         val density = resources.displayMetrics.density
-        val triggerDp = 140
+        val triggerDp = 80
         try {
             val field = androidx.swiperefreshlayout.widget.SwipeRefreshLayout::class.java
                 .getDeclaredField("mTotalDragDistance")
@@ -428,11 +428,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         webView.onResume()
         webView.resumeTimers()
-        // 从后台切回时 WebView 内容可能短暂重绘为白；遮盖 400ms 后淡出
-        if (!webView.url.isNullOrEmpty()) {
-            forceShowOverlay()
-            handler.postDelayed({ hideOverlay() }, 400)
-        }
+        // 切回 App 时不主动操作 overlay，让 WebView 自然恢复
     }
 
     override fun onPause() {
