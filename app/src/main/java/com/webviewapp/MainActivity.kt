@@ -401,10 +401,16 @@ class MainActivity : AppCompatActivity() {
             })
 
         val leftGesture  = makeGesture(onSwipeRight = {
-            if (webView.canGoBack()) webView.goBack()
+            if (webView.canGoBack()) {
+                forceShowOverlay()
+                handler.postDelayed({ webView.goBack() }, 50)
+            }
         })
         val rightGesture = makeGesture(onSwipeLeft = {
-            if (webView.canGoForward()) webView.goForward()
+            if (webView.canGoForward()) {
+                forceShowOverlay()
+                handler.postDelayed({ webView.goForward() }, 50)
+            }
         })
 
         edgeLeft.setOnTouchListener  { _, e -> leftGesture.onTouchEvent(e) }
