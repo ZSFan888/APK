@@ -544,24 +544,20 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == FILE_CHOOSER_REQUEST) {
             val results: Array<Uri>? = if (resultCode == RESULT_OK) {
                 when {
-                    // 相机拍照：data 为 null 或 data.data 为 null
+                    // 相机拍照
                     (data == null || data.data == null) && cameraImageUri != null -> {
                         arrayOf(cameraImageUri!!)
                     }
-                    // 多选文件
+                    // 多选文件：逐个复制到缓存
                     data?.clipData != null -> {
                         val clip = data.clipData!!
-                        Array(clip.itemCount) { i ->
-                            clip.getItemAt(i).uri.also { uri ->
-                                try { contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
-                            }
-                        }
+                        (0 until clip.itemCount).mapNotNull { i ->
+                            copyUriToCache(clip.getItemAt(i).uri)
+                        }.toTypedArray()
                     }
-                    // 单选文件
+                    // 单选文件：复制到缓存
                     data?.data != null -> {
-                        val uri = data.data!!
-                        try { contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
-                        arrayOf(uri)
+                        copyUriToCache(data.data!!)?.let { arrayOf(it) }
                     }
                     else -> null
                 }
@@ -572,6 +568,30 @@ class MainActivity : AppCompatActivity() {
         }
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    // 将任意 URI（content:// / file://）复制到 app 缓存，返回 FileProvider URI
+    // 确保 WebView 进程可以读取文件内容进行上传
+    private fun copyUriToCache(source: Uri): Uri? {
+        return try {
+            val mimeType = contentResolver.getType(source) ?: "image/jpeg"
+            val ext = when {
+                mimeType.contains("png")  -> ".png"
+                mimeType.contains("gif")  -> ".gif"
+                mimeType.contains("webp") -> ".webp"
+                mimeType.contains("pdf")  -> ".pdf"
+                mimeType.contains("video")-> ".mp4"
+                else -> ".jpg"
+            }
+            val dest = java.io.File(cacheDir, "webview_uploads/upload_${System.currentTimeMillis()}$ext")
+                .also { it.parentFile?.mkdirs() }
+            contentResolver.openInputStream(source)?.use { input ->
+                dest.outputStream().use { output -> input.copyTo(output) }
+            }
+            androidx.core.content.FileProvider.getUriForFile(this, "${packageName}.fileprovider", dest)
+        } catch (e: Exception) {
+            source  // 复制失败时返回原始 URI
+        }
     }
 
 
