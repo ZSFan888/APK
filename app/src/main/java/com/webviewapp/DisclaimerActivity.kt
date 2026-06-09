@@ -34,23 +34,19 @@ class DisclaimerActivity : AppCompatActivity() {
 
         tvBody.text = buildDisclaimerText()
 
-        // 初始：按钮禁用，提示条可见
-        btnAccept.isEnabled = false
-        btnAccept.alpha = 0.4f
-
+        // 初始：按钮保持可点击（视觉上稍暗），提示条可见
         var hasScrolledToBottom = false
 
         fun unlock() {
             if (hasScrolledToBottom) return
             hasScrolledToBottom = true
-            btnAccept.isEnabled = true
             btnAccept.animate().alpha(1f).setDuration(200).start()
             tvHint.animate().alpha(0f).setDuration(200).withEndAction {
                 tvHint.visibility = android.view.View.GONE
             }.start()
         }
 
-        // 滚到底部一次后永久解锁按钮
+        // 滚到底部一次后永久解锁
         scrollView.setOnScrollChangeListener { v, _, scrollY, _, _ ->
             val sv = v as android.widget.ScrollView
             val child = sv.getChildAt(0) ?: return@setOnScrollChangeListener
@@ -68,6 +64,12 @@ class DisclaimerActivity : AppCompatActivity() {
 
         btnDecline.setOnClickListener { finishAffinity() }
         btnAccept.setOnClickListener {
+            if (!hasScrolledToBottom) {
+                android.widget.Toast.makeText(this, "请先滑动阅读全部内容", android.widget.Toast.LENGTH_SHORT).show()
+                // 自动滚到底部引导用户
+                scrollView.post { scrollView.fullScroll(android.widget.ScrollView.FOCUS_DOWN) }
+                return@setOnClickListener
+            }
             getSharedPreferences("app_prefs", MODE_PRIVATE)
                 .edit().putBoolean("disc_agreed", true).apply()
             startActivity(Intent(this, MainActivity::class.java).apply {
