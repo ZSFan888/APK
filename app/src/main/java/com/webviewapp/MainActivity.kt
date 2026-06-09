@@ -404,12 +404,19 @@ class MainActivity : AppCompatActivity() {
             if (webView.canGoBack()) {
                 forceShowOverlay()
                 handler.postDelayed({ webView.goBack() }, 50)
+                // 兜底：SPA 内部路由不触发 onPageStarted，1500ms 后强制隐藏 overlay
+                handler.postDelayed({
+                    if (overlayVisible) hideOverlay()
+                }, 1500)
             }
         })
         val rightGesture = makeGesture(onSwipeLeft = {
             if (webView.canGoForward()) {
                 forceShowOverlay()
                 handler.postDelayed({ webView.goForward() }, 50)
+                handler.postDelayed({
+                    if (overlayVisible) hideOverlay()
+                }, 1500)
             }
         })
 
