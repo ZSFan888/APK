@@ -252,29 +252,17 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 fileChooserCallbackRef?.onReceiveValue(null)
                 fileChooserCallbackRef = filePathCallback
-                try {
-                    // 创建相机临时文件
-                    val photoFile = java.io.File(
-                        cacheDir,
-                        "webview_uploads/camera_${System.currentTimeMillis()}.jpg"
-                    ).also { it.parentFile?.mkdirs() }
-                    cameraImageUri = androidx.core.content.FileProvider.getUriForFile(
-                        this@MainActivity,
-                        "${packageName}.fileprovider",
-                        photoFile
-                    )
-                    val cameraIntent = android.content.Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                        putExtra(android.provider.MediaStore.EXTRA_OUTPUT, cameraImageUri)
-                        addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    }
-                    val fileIntent = fileChooserParams.createIntent()
-                    val chooser = android.content.Intent.createChooser(fileIntent, "选择图片").apply {
-                        putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
-                    }
-                    startActivityForResult(chooser, FILE_CHOOSER_REQUEST)
-                } catch (e: Exception) {
-                    filePathCallback.onReceiveValue(null)
-                    fileChooserCallbackRef = null
+                pendingFileChooserParams = fileChooserParams
+                // 检查并申请权限，权限齐全后再弹选择器
+                val missing = REQUIRED_PERMISSIONS.filter {
+                    androidx.core.content.ContextCompat.checkSelfPermission(this@MainActivity, it) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED
+                }
+                if (missing.isNotEmpty()) {
+                    androidx.core.app.ActivityCompat.requestPermissions(
+                        this@MainActivity, missing.toTypedArray(), PERMISSION_REQUEST_CODE)
+                } else {
+                    launchFilePicker(fileChooserParams)
                 }
                 return true
             }
@@ -509,6 +497,47 @@ class MainActivity : AppCompatActivity() {
 
     private var fileChooserCallbackRef: ValueCallback<Array<Uri>>? = null
     private var cameraImageUri: Uri? = null
+    private var pendingFileChooserParams: WebChromeClient.FileChooserParams? = null
+
+    private fun launchFilePicker(params: WebChromeClient.FileChooserParams) {
+        try {
+            val photoFile = java.io.File(cacheDir, "webview_uploads/camera_${System.currentTimeMillis()}.jpg")
+                .also { it.parentFile?.mkdirs() }
+            cameraImageUri = androidx.core.content.FileProvider.getUriForFile(
+                this, "${packageName}.fileprovider", photoFile)
+            val cameraIntent = android.content.Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                putExtra(android.provider.MediaStore.EXTRA_OUTPUT, cameraImageUri)
+                addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            val fileIntent = params.createIntent().apply {
+                // 明确允许图片和视频
+                type = "image/*"
+                putExtra(android.content.Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
+            }
+            val chooser = android.content.Intent.createChooser(fileIntent, "选择图片").apply {
+                putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
+            }
+            startActivityForResult(chooser, FILE_CHOOSER_REQUEST)
+        } catch (e: Exception) {
+            fileChooserCallbackRef?.onReceiveValue(null)
+            fileChooserCallbackRef = null
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            val params = pendingFileChooserParams
+            pendingFileChooserParams = null
+            if (params != null && grantResults.any { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
+                launchFilePicker(params)
+            } else {
+                fileChooserCallbackRef?.onReceiveValue(null)
+                fileChooserCallbackRef = null
+                android.widget.Toast.makeText(this, "需要相机/存储权限才能上传图片", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -549,6 +578,15 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val APP_URL = "{{APP_URL}}"
-        private const val FILE_CHOOSER_REQUEST = 1001
+        private const val FILE_CHOOSER_REQUEST    = 1001
+        private const val PERMISSION_REQUEST_CODE = 1002
+        private val REQUIRED_PERMISSIONS = if (android.os.Build.VERSION.SDK_INT >= 33) {
+            arrayOf(android.Manifest.permission.CAMERA,
+                    android.Manifest.permission.READ_MEDIA_IMAGES,
+                    android.Manifest.permission.READ_MEDIA_VIDEO)
+        } else {
+            arrayOf(android.Manifest.permission.CAMERA,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
     }
 }
