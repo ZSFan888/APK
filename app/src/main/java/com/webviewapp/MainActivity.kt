@@ -126,8 +126,23 @@ class MainActivity : AppCompatActivity() {
             builtInZoomControls              = false
             displayZoomControls              = false
             mediaPlaybackRequiresUserGesture = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            mixedContentMode                 = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowContentAccess               = true
+            allowFileAccess                  = true
+            javaScriptCanOpenWindowsAutomatically = true
+            setSupportMultipleWindows(true)
         }
+        // 开启 Service Worker（支持 PWA 类网站）
+        try {
+            android.webkit.ServiceWorkerController.getInstance().serviceWorkerWebSettings?.apply {
+                allowContentAccess = true
+                allowFileAccess    = true
+            }
+            android.webkit.ServiceWorkerController.getInstance()
+                .setServiceWorkerClient(object : android.webkit.ServiceWorkerClient() {
+                    override fun shouldInterceptRequest(request: WebResourceRequest) = null
+                })
+        } catch (_: Exception) {}
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
@@ -206,6 +221,27 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
+            }
+            override fun onCreateWindow(
+                view: WebView, isDialog: Boolean, isUserGesture: Boolean, msg: android.os.Message
+            ): Boolean {
+                val href = view.handler.obtainMessage()
+                view.requestFocusNodeHref(href)
+                val url = href.data?.getString("url")
+                if (!url.isNullOrEmpty()) view.loadUrl(url)
+                else {
+                    val child = WebView(view.context)
+                    child.webViewClient = object : WebViewClient() {
+                        override fun onPageStarted(v: WebView, u: String, f: android.graphics.Bitmap?) {
+                            view.loadUrl(u)
+                            child.destroy()
+                        }
+                    }
+                    val transport = msg.obj as? WebView.WebViewTransport
+                    transport?.webView = child
+                    msg.sendToTarget()
+                }
+                return true
             }
             override fun onShowFileChooser(
                 webView: WebView,
@@ -291,11 +327,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：去掉 "wv" 标识避免 CF/Google 将其识别为 WebView 并加强质询
-        // 保留 PakrApp/1.0 供网页端识别（跳过免责声明弹窗）
+        // UA：去掉所有 WebView 标识，模拟标准 Chrome 浏览器
         val defaultUA = webView.settings.userAgentString
-        val cleanUA = defaultUA.replace("; wv", "").replace(" wv", "")
-        webView.settings.userAgentString = "$cleanUA PakrApp/1.0"
+        val cleanUA = defaultUA
+            .replace(Regex("; wv\b"), "")
+            .replace(Regex("\bwv\b"), "")
+            .replace(Regex("Version/[0-9.]+ "), "")
+            .trim()
+        webView.settings.userAgentString = cleanUA
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
@@ -360,10 +399,18 @@ class MainActivity : AppCompatActivity() {
             })
 
         val leftGesture  = makeGesture(onSwipeRight = {
-            if (webView.canGoBack()) webView.goBack()
+            if (webView.canGoBack()) {
+                forceShowOverlay()
+                handler.postDelayed({ webView.goBack() }, 50)
+                handler.postDelayed({ if (overlayVisible) hideOverlay() }, 1500)
+            }
         })
         val rightGesture = makeGesture(onSwipeLeft = {
-            if (webView.canGoForward()) webView.goForward()
+            if (webView.canGoForward()) {
+                forceShowOverlay()
+                handler.postDelayed({ webView.goForward() }, 50)
+                handler.postDelayed({ if (overlayVisible) hideOverlay() }, 1500)
+            }
         })
 
         edgeLeft.setOnTouchListener  { _, e -> leftGesture.onTouchEvent(e) }
