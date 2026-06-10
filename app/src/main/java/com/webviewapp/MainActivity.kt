@@ -327,14 +327,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：去掉所有 WebView 标识，模拟标准 Chrome 浏览器
-        val defaultUA = webView.settings.userAgentString
-        val cleanUA = defaultUA
-            .replace(Regex("; wv\b"), "")
-            .replace(Regex("\bwv\b"), "")
-            .replace(Regex("Version/[0-9.]+ "), "")
-            .trim()
-        webView.settings.userAgentString = cleanUA
+        // UA：强制使用桌面版 Chrome UA，确保 ChatGPT 等网站不限制功能（如图片上传）
+        webView.settings.userAgentString =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/125.0.0.0 Safari/537.36"
+        // 同时开启桌面模式视口
+        webView.settings.useWideViewPort    = true
+        webView.settings.loadWithOverviewMode = true
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
