@@ -160,6 +160,7 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
+                injectUploadFix(view)
                 fetchThemeColor(view)
                 handler.removeCallbacks(delayHideRunnable)
                 // 用 JS 检测页面真正渲染完成（两帧后），再隐藏 overlay
@@ -335,6 +336,52 @@ class MainActivity : AppCompatActivity() {
             swipeRefresh.isEnabled = (scrollY == 0)
         }
         webView.loadUrl(APP_URL)
+    }
+
+    // 注入 JS：修复 WebView 中 fetch 上传 Blob/FormData 失败的问题
+    private fun injectUploadFix(view: WebView) {
+        val js = """
+            (function() {
+                if (window.__uploadFixInjected) return;
+                window.__uploadFixInjected = true;
+                // 修复 fetch 上传 Blob 时可能失败的问题：降级为 XHR
+                const origFetch = window.fetch;
+                window.fetch = function(input, init) {
+                    if (init && init.body instanceof Blob) {
+                        return new Promise(function(resolve, reject) {
+                            var xhr = new XMLHttpRequest();
+                            var url = (typeof input === 'string') ? input : input.url;
+                            xhr.open(init.method || 'POST', url, true);
+                            if (init.headers) {
+                                var h = init.headers;
+                                if (h.forEach) {
+                                    h.forEach(function(v, k) { xhr.setRequestHeader(k, v); });
+                                } else {
+                                    Object.keys(h).forEach(function(k) { xhr.setRequestHeader(k, h[k]); });
+                                }
+                            }
+                            xhr.withCredentials = (init.credentials === 'include');
+                            xhr.onload = function() {
+                                var res = new Response(xhr.response, {
+                                    status: xhr.status,
+                                    statusText: xhr.statusText,
+                                    headers: new Headers(xhr.getAllResponseHeaders().split('
+').filter(Boolean).reduce(function(acc, l) {
+                                        var p = l.indexOf(':'); if(p>0) acc[l.slice(0,p).trim()] = l.slice(p+1).trim(); return acc;
+                                    }, {}))
+                                });
+                                resolve(res);
+                            };
+                            xhr.onerror = function() { reject(new TypeError('Network request failed')); };
+                            xhr.responseType = 'blob';
+                            xhr.send(init.body);
+                        });
+                    }
+                    return origFetch.apply(this, arguments);
+                };
+            })();
+        """.trimIndent()
+        view.evaluateJavascript(js, null)
     }
 
     private fun fetchThemeColor(view: WebView) {
