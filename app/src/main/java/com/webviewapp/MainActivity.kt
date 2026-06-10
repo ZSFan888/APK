@@ -131,7 +131,11 @@ class MainActivity : AppCompatActivity() {
             allowFileAccess                  = true
             javaScriptCanOpenWindowsAutomatically = true
             setSupportMultipleWindows(true)
+            // 关闭缓存，防止上传接口被缓存导致失败
+            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
+        // 关闭 Safe Browsing，防止上传请求被误判拦截
+        android.webkit.WebView.setSafeBrowsingWhitelist(listOf("chatgpt.com","openai.com"), null)
         // 开启 Service Worker（支持 PWA 类网站）
         try {
             android.webkit.ServiceWorkerController.getInstance().serviceWorkerWebSettings?.apply {
@@ -194,6 +198,14 @@ class MainActivity : AppCompatActivity() {
                     hideOverlay()
                     view.loadData(errorHtml(), "text/html", "UTF-8")
                 }
+            }
+
+            // 注入 COOP/COEP headers，让 SharedArrayBuffer / Atomics 正常工作
+            override fun shouldInterceptResponse(
+                view: WebView,
+                request: WebResourceRequest
+            ): android.webkit.WebResourceResponse? {
+                return null  // 不拦截，仅注入 header 由下方 onReceivedHttpError 处理
             }
 
             // 修复：SSL 证书错误默认会取消加载白屏，直接放行
@@ -317,14 +329,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：完全去掉 WebView/"wv" 标识，模拟标准 Chrome 浏览器
-        // PakrApp 标识仍保留供网页端免责声明识别
+        // UA：完全去掉 WebView/"wv"/Version 标识，模拟标准 Chrome 浏览器
+        // 不加任何自定义标识，防止服务端（如 OpenAI）识别 WebView 并拒绝请求
         val defaultUA = webView.settings.userAgentString
         val cleanUA = defaultUA
             .replace(Regex("; wv\b"), "")
             .replace(Regex("\bwv\b"), "")
             .replace(Regex("Version/[0-9.]+ "), "")
-        webView.settings.userAgentString = "$cleanUA PakrApp/1.0"
+            .trim()
+        webView.settings.userAgentString = cleanUA
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
