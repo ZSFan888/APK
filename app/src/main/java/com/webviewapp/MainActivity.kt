@@ -130,7 +130,7 @@ class MainActivity : AppCompatActivity() {
             allowContentAccess               = true
             allowFileAccess                  = true
             javaScriptCanOpenWindowsAutomatically = true
-            setSupportMultipleWindows(true)
+            setSupportMultipleWindows(false)
             // 关闭缓存，防止上传接口被缓存导致失败
             cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
         }
@@ -230,24 +230,18 @@ class MainActivity : AppCompatActivity() {
             override fun onCreateWindow(
                 view: WebView, isDialog: Boolean, isUserGesture: Boolean, msg: android.os.Message
             ): Boolean {
-                // target=_blank 等新窗口请求，在当前 WebView 内打开
-                val href = view.handler.obtainMessage()
-                view.requestFocusNodeHref(href)
-                val url = href.data?.getString("url")
-                if (!url.isNullOrEmpty()) view.loadUrl(url)
-                else {
-                    // 创建临时 WebView 获取新窗口 URL
-                    val child = WebView(view.context)
-                    child.webViewClient = object : WebViewClient() {
-                        override fun onPageStarted(v: WebView, u: String, f: Bitmap?) {
-                            view.loadUrl(u)
-                            child.destroy()
-                        }
+                // target=_blank：创建临时 WebView 捕获真实 URL，再在主 WebView 内打开
+                val child = WebView(view.context)
+                child.webViewClient = object : WebViewClient() {
+                    override fun onPageStarted(v: WebView, u: String, f: Bitmap?) {
+                        if (u != "about:blank") view.loadUrl(u)
+                        child.stopLoading()
+                        child.destroy()
                     }
-                    val transport = msg.obj as? WebView.WebViewTransport
-                    transport?.webView = child
-                    msg.sendToTarget()
                 }
+                val transport = msg.obj as? WebView.WebViewTransport ?: return false
+                transport.webView = child
+                msg.sendToTarget()
                 return true
             }
             override fun onShowFileChooser(
