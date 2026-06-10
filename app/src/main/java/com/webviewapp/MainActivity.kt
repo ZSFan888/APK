@@ -196,6 +196,25 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            // 上传接口使用桌面UA，其余使用移动UA（解决ChatGPT上传限制）
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): android.webkit.WebResourceResponse? {
+                val url = request.url.toString()
+                val isUpload = url.contains("backend-api/files") ||
+                               url.contains("backend-api/conversation") ||
+                               url.contains("ab.chatgpt.com") ||
+                               url.contains("upload")
+                if (isUpload) {
+                    val newReq = android.webkit.WebResourceRequest::class.java.let { request }
+                    // 通过切换全局UA来影响此次请求（WebView 请求时读取当前UA）
+                    // 在主线程切换，请求后恢复
+                    view.post {
+                        view.settings.userAgentString = desktopUA
+                        view.postDelayed({ view.settings.userAgentString = mobileUA }, 3000)
+                    }
+                }
+                return null
+            }
+
             // 修复：SSL 证书错误默认会取消加载白屏，直接放行
             @Suppress("WebViewClientOnReceivedSslError")
             override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
@@ -327,12 +346,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：使用真实 Android Chrome UA（无 wv/WebView 标识）
-        // 与真实 Chrome for Android 完全一致，ChatGPT 等网站不会限制任何功能
-        webView.settings.userAgentString =
-            "Mozilla/5.0 (Linux; Android 10; K) " +
+        // UA：使用真实 Android Chrome UA（无任何 wv/WebView 标识）
+        val mobileUA = "Mozilla/5.0 (Linux; Android 10; K) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/125.0.6422.165 Mobile Safari/537.36"
+        val desktopUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/125.0.0.0 Safari/537.36"
+        webView.settings.userAgentString = mobileUA
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
