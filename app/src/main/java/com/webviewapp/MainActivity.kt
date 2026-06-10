@@ -200,14 +200,6 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // 注入 COOP/COEP headers，让 SharedArrayBuffer / Atomics 正常工作
-            override fun shouldInterceptResponse(
-                view: WebView,
-                request: WebResourceRequest
-            ): android.webkit.WebResourceResponse? {
-                return null  // 不拦截，仅注入 header 由下方 onReceivedHttpError 处理
-            }
-
             // 修复：SSL 证书错误默认会取消加载白屏，直接放行
             @Suppress("WebViewClientOnReceivedSslError")
             override fun onReceivedSslError(view: WebView, handler: android.webkit.SslErrorHandler, error: android.net.http.SslError) {
