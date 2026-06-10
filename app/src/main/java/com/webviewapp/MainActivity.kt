@@ -561,12 +561,9 @@ class MainActivity : AppCompatActivity() {
                 putExtra(android.provider.MediaStore.EXTRA_OUTPUT, cameraImageUri)
                 addFlags(android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             }
-            val fileIntent = params.createIntent().apply {
-                // 明确允许图片和视频
-                type = "image/*"
-                putExtra(android.content.Intent.EXTRA_MIME_TYPES, arrayOf("image/*", "video/*"))
-            }
-            val chooser = android.content.Intent.createChooser(fileIntent, "选择图片").apply {
+            // 直接用网站原始的 accept 参数，不覆盖 type
+            val fileIntent = params.createIntent()
+            val chooser = android.content.Intent.createChooser(fileIntent, "选择文件").apply {
                 putExtra(android.content.Intent.EXTRA_INITIAL_INTENTS, arrayOf(cameraIntent))
             }
             startActivityForResult(chooser, FILE_CHOOSER_REQUEST)
@@ -596,21 +593,17 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == FILE_CHOOSER_REQUEST) {
             val results: Array<Uri>? = if (resultCode == RESULT_OK) {
                 when {
-                    // 相机拍照
+                    // 相机拍照：返回 FileProvider URI（已有写权限）
                     (data == null || data.data == null) && cameraImageUri != null -> {
                         arrayOf(cameraImageUri!!)
                     }
-                    // 多选文件：逐个复制到缓存
+                    // 多选文件
                     data?.clipData != null -> {
                         val clip = data.clipData!!
-                        (0 until clip.itemCount).mapNotNull { i ->
-                            copyUriToCache(clip.getItemAt(i).uri)
-                        }.toTypedArray()
+                        Array(clip.itemCount) { i -> clip.getItemAt(i).uri }
                     }
-                    // 单选文件：复制到缓存
-                    data?.data != null -> {
-                        copyUriToCache(data.data!!)?.let { arrayOf(it) }
-                    }
+                    // 单选文件
+                    data?.data != null -> arrayOf(data.data!!)
                     else -> null
                 }
             } else null
@@ -620,30 +613,6 @@ class MainActivity : AppCompatActivity() {
         }
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
-    }
-
-    // 将任意 URI（content:// / file://）复制到 app 缓存，返回 FileProvider URI
-    // 确保 WebView 进程可以读取文件内容进行上传
-    private fun copyUriToCache(source: Uri): Uri? {
-        return try {
-            val mimeType = contentResolver.getType(source) ?: "image/jpeg"
-            val ext = when {
-                mimeType.contains("png")  -> ".png"
-                mimeType.contains("gif")  -> ".gif"
-                mimeType.contains("webp") -> ".webp"
-                mimeType.contains("pdf")  -> ".pdf"
-                mimeType.contains("video")-> ".mp4"
-                else -> ".jpg"
-            }
-            val dest = java.io.File(cacheDir, "webview_uploads/upload_${System.currentTimeMillis()}$ext")
-                .also { it.parentFile?.mkdirs() }
-            contentResolver.openInputStream(source)?.use { input ->
-                dest.outputStream().use { output -> input.copyTo(output) }
-            }
-            androidx.core.content.FileProvider.getUriForFile(this, "${packageName}.fileprovider", dest)
-        } catch (e: Exception) {
-            source  // 复制失败时返回原始 URI
-        }
     }
 
 
