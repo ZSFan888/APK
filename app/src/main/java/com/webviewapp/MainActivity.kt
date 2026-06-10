@@ -327,14 +327,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：强制使用桌面版 Chrome UA，确保 ChatGPT 等网站不限制功能（如图片上传）
+        // UA：使用真实 Android Chrome UA（无 wv/WebView 标识）
+        // 与真实 Chrome for Android 完全一致，ChatGPT 等网站不会限制任何功能
         webView.settings.userAgentString =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "Mozilla/5.0 (Linux; Android 10; K) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) " +
-            "Chrome/125.0.0.0 Safari/537.36"
-        // 同时开启桌面模式视口
-        webView.settings.useWideViewPort    = true
-        webView.settings.loadWithOverviewMode = true
+            "Chrome/125.0.6422.165 Mobile Safari/537.36"
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
