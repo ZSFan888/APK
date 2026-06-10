@@ -355,8 +355,33 @@ class MainActivity : AppCompatActivity() {
             "Chrome/125.0.0.0 Safari/537.36"
         webView.settings.userAgentString = mobileUA
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
-        webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+        // 只有页面在顶部 AND 手指向下拖动时才启用下拉刷新
+        // 避免向上滑查看内容时误触刷新
+        var lastScrollY = 0
+        webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+            lastScrollY = scrollY
+            // 在顶部且页面向上滚动（即可能要下拉刷新），才启用
             swipeRefresh.isEnabled = (scrollY == 0)
+        }
+        webView.setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    // 手指按下时记录起始位置
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    // 只有页面在顶部时才允许 SwipeRefresh 介入
+                    // 不在顶部时强制禁用，防止快速滑到顶后误触
+                    if (lastScrollY > 0) {
+                        swipeRefresh.isEnabled = false
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    // 手指抬起后根据实际 scrollY 恢复状态
+                    swipeRefresh.isEnabled = (lastScrollY == 0)
+                }
+            }
+            false
         }
         webView.loadUrl(APP_URL)
     }
