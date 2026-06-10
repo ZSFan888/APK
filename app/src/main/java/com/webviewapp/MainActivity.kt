@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         )
         // 触发距离设为 140dp（接近 Chrome），避免轻划误触
         val density = resources.displayMetrics.density
-        val triggerDp = 80
+        val triggerDp = 120
         try {
             val field = androidx.swiperefreshlayout.widget.SwipeRefreshLayout::class.java
                 .getDeclaredField("mTotalDragDistance")
@@ -332,30 +332,35 @@ class MainActivity : AppCompatActivity() {
         // UA：移动版 Chrome（无 wv 标识），上传时临时切桌面UA
         webView.settings.userAgentString = MOBILE_UA
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
-        // 只有页面在顶部 AND 手指向下拖动时才启用下拉刷新
-        // 避免向上滑查看内容时误触刷新
+        // 防误触：只有页面静止在顶部时才启用下拉刷新
         var lastScrollY = 0
-        webView.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+        var isTouching = false
+        webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             lastScrollY = scrollY
-            // 在顶部且页面向上滚动（即可能要下拉刷新），才启用
-            swipeRefresh.isEnabled = (scrollY == 0)
+            if (!isTouching) {
+                // 手指不在屏幕上时（fling 中），页面不在顶部就禁用
+                if (scrollY > 0) swipeRefresh.isEnabled = false
+            }
         }
         webView.setOnTouchListener { _, event ->
             when (event.action) {
                 android.view.MotionEvent.ACTION_DOWN -> {
-                    // 手指按下时记录起始位置
+                    isTouching = true
+                    // 手指按下时根据当前位置决定是否启用
+                    swipeRefresh.isEnabled = (lastScrollY == 0)
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
-                    // 只有页面在顶部时才允许 SwipeRefresh 介入
-                    // 不在顶部时强制禁用，防止快速滑到顶后误触
-                    if (lastScrollY > 0) {
-                        swipeRefresh.isEnabled = false
-                    }
+                    // 滑动过程中不在顶部就立即禁用
+                    if (lastScrollY > 0) swipeRefresh.isEnabled = false
                 }
                 android.view.MotionEvent.ACTION_UP,
                 android.view.MotionEvent.ACTION_CANCEL -> {
-                    // 手指抬起后根据实际 scrollY 恢复状态
-                    swipeRefresh.isEnabled = (lastScrollY == 0)
+                    isTouching = false
+                    // 手指抬起后延迟 300ms 再判断（等 fling 惯性结束）
+                    swipeRefresh.isEnabled = false
+                    handler.postDelayed({
+                        swipeRefresh.isEnabled = (lastScrollY == 0)
+                    }, 300)
                 }
             }
             false
