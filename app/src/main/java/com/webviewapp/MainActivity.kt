@@ -126,27 +126,8 @@ class MainActivity : AppCompatActivity() {
             builtInZoomControls              = false
             displayZoomControls              = false
             mediaPlaybackRequiresUserGesture = false
-            mixedContentMode                 = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            allowContentAccess               = true
-            allowFileAccess                  = true
-            javaScriptCanOpenWindowsAutomatically = true
-            setSupportMultipleWindows(false)
-            // 关闭缓存，防止上传接口被缓存导致失败
-            cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         }
-        // 关闭 Safe Browsing，防止上传请求被误判拦截
-        android.webkit.WebView.setSafeBrowsingWhitelist(listOf("chatgpt.com","openai.com"), null)
-        // 开启 Service Worker（支持 PWA 类网站）
-        try {
-            android.webkit.ServiceWorkerController.getInstance().serviceWorkerWebSettings?.apply {
-                allowContentAccess = true
-                allowFileAccess    = true
-            }
-            android.webkit.ServiceWorkerController.getInstance()
-                .setServiceWorkerClient(object : android.webkit.ServiceWorkerClient() {
-                    override fun shouldInterceptRequest(request: WebResourceRequest) = null
-                })
-        } catch (_: Exception) {}
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
             setAcceptThirdPartyCookies(webView, true)
@@ -160,7 +141,6 @@ class MainActivity : AppCompatActivity() {
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
-                injectUploadFix(view)
                 fetchThemeColor(view)
                 handler.removeCallbacks(delayHideRunnable)
                 // 用 JS 检测页面真正渲染完成（两帧后），再隐藏 overlay
@@ -227,23 +207,6 @@ class MainActivity : AppCompatActivity() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.grant(request.resources)
             }
-            override fun onCreateWindow(
-                view: WebView, isDialog: Boolean, isUserGesture: Boolean, msg: android.os.Message
-            ): Boolean {
-                // target=_blank：创建临时 WebView 捕获真实 URL，再在主 WebView 内打开
-                val child = WebView(view.context)
-                child.webViewClient = object : WebViewClient() {
-                    override fun onPageStarted(v: WebView, u: String, f: Bitmap?) {
-                        if (u != "about:blank") view.loadUrl(u)
-                        child.stopLoading()
-                        child.destroy()
-                    }
-                }
-                val transport = msg.obj as? WebView.WebViewTransport ?: return false
-                transport.webView = child
-                msg.sendToTarget()
-                return true
-            }
             override fun onShowFileChooser(
                 webView: WebView,
                 filePathCallback: ValueCallback<Array<Uri>>,
@@ -252,6 +215,7 @@ class MainActivity : AppCompatActivity() {
                 fileChooserCallbackRef?.onReceiveValue(null)
                 fileChooserCallbackRef = filePathCallback
                 try {
+                    // 创建相机临时文件
                     val photoFile = java.io.File(
                         cacheDir,
                         "webview_uploads/camera_${System.currentTimeMillis()}.jpg"
@@ -327,66 +291,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "_pakrBridge")
-        // UA：完全去掉 WebView/"wv"/Version 标识，模拟标准 Chrome 浏览器
-        // 不加任何自定义标识，防止服务端（如 OpenAI）识别 WebView 并拒绝请求
+        // UA：去掉 "wv" 标识避免 CF/Google 将其识别为 WebView 并加强质询
+        // 保留 PakrApp/1.0 供网页端识别（跳过免责声明弹窗）
         val defaultUA = webView.settings.userAgentString
-        val cleanUA = defaultUA
-            .replace(Regex("; wv\b"), "")
-            .replace(Regex("\bwv\b"), "")
-            .replace(Regex("Version/[0-9.]+ "), "")
-            .trim()
-        webView.settings.userAgentString = cleanUA
+        val cleanUA = defaultUA.replace("; wv", "").replace(" wv", "")
+        webView.settings.userAgentString = "$cleanUA PakrApp/1.0"
         // 实时控制：WebView 不在顶部时禁用下拉刷新，防止滚动误触和打断 CF 验证
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = (scrollY == 0)
         }
         webView.loadUrl(APP_URL)
-    }
-
-    // 注入 JS：修复 WebView 中 fetch 上传 Blob/FormData 失败的问题
-    private fun injectUploadFix(view: WebView) {
-        val js = """
-            (function() {
-                if (window.__uploadFixInjected) return;
-                window.__uploadFixInjected = true;
-                // 修复 fetch 上传 Blob 时可能失败的问题：降级为 XHR
-                const origFetch = window.fetch;
-                window.fetch = function(input, init) {
-                    if (init && init.body instanceof Blob) {
-                        return new Promise(function(resolve, reject) {
-                            var xhr = new XMLHttpRequest();
-                            var url = (typeof input === 'string') ? input : input.url;
-                            xhr.open(init.method || 'POST', url, true);
-                            if (init.headers) {
-                                var h = init.headers;
-                                if (h.forEach) {
-                                    h.forEach(function(v, k) { xhr.setRequestHeader(k, v); });
-                                } else {
-                                    Object.keys(h).forEach(function(k) { xhr.setRequestHeader(k, h[k]); });
-                                }
-                            }
-                            xhr.withCredentials = (init.credentials === 'include');
-                            xhr.onload = function() {
-                                var res = new Response(xhr.response, {
-                                    status: xhr.status,
-                                    statusText: xhr.statusText,
-                                    headers: new Headers(xhr.getAllResponseHeaders().split('
-').filter(Boolean).reduce(function(acc, l) {
-                                        var p = l.indexOf(':'); if(p>0) acc[l.slice(0,p).trim()] = l.slice(p+1).trim(); return acc;
-                                    }, {}))
-                                });
-                                resolve(res);
-                            };
-                            xhr.onerror = function() { reject(new TypeError('Network request failed')); };
-                            xhr.responseType = 'blob';
-                            xhr.send(init.body);
-                        });
-                    }
-                    return origFetch.apply(this, arguments);
-                };
-            })();
-        """.trimIndent()
-        view.evaluateJavascript(js, null)
     }
 
     private fun fetchThemeColor(view: WebView) {
@@ -446,23 +360,10 @@ class MainActivity : AppCompatActivity() {
             })
 
         val leftGesture  = makeGesture(onSwipeRight = {
-            if (webView.canGoBack()) {
-                forceShowOverlay()
-                handler.postDelayed({ webView.goBack() }, 50)
-                // 兜底：SPA 内部路由不触发 onPageStarted，1500ms 后强制隐藏 overlay
-                handler.postDelayed({
-                    if (overlayVisible) hideOverlay()
-                }, 1500)
-            }
+            if (webView.canGoBack()) webView.goBack()
         })
         val rightGesture = makeGesture(onSwipeLeft = {
-            if (webView.canGoForward()) {
-                forceShowOverlay()
-                handler.postDelayed({ webView.goForward() }, 50)
-                handler.postDelayed({
-                    if (overlayVisible) hideOverlay()
-                }, 1500)
-            }
+            if (webView.canGoForward()) webView.goForward()
         })
 
         edgeLeft.setOnTouchListener  { _, e -> leftGesture.onTouchEvent(e) }
