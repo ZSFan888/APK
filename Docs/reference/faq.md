@@ -13,10 +13,6 @@
 
 说明两次打包使用了不同的签名。需要正确配置 Keystore Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`），确保每次签名一致。
 
-## 打包历史丢了？
-
-打包历史保存在浏览器 LocalStorage，清除浏览器缓存后会丢失，这是正常现象。
-
 ## Actions 额度用完了？
 
 GitHub 免费账号每月 2000 分钟，单次构建约 3~5 分钟，每月约可打包 400~600 次。超出后需等下月重置或升级 GitHub 套餐。
