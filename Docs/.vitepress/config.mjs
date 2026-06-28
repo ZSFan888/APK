@@ -10,8 +10,6 @@ export default defineConfig({
   themeConfig: {
     siteTitle: 'Pakr Docs',
     nav: [
-      { text: '中文', link: '/' },
-      { text: 'English', link: '/en/' },
       { text: '在线体验', link: 'https://apk.091224.xyz' }
     ],
     sidebar: {
@@ -68,8 +66,6 @@ export default defineConfig({
       lang: 'zh-CN',
       themeConfig: {
         nav: [
-          { text: '中文', link: '/' },
-          { text: 'English', link: '/en/' },
           { text: '在线体验', link: 'https://apk.091224.xyz' }
         ],
         outline: { level: [2, 3], label: '页面导航' },
@@ -101,8 +97,6 @@ export default defineConfig({
       link: '/en/',
       themeConfig: {
         nav: [
-          { text: '中文', link: '/' },
-          { text: 'English', link: '/en/' },
           { text: 'Live Demo', link: 'https://apk.091224.xyz' }
         ],
         outline: { level: [2, 3], label: 'On this page' },
