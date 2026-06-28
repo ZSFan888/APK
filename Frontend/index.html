@@ -66,12 +66,8 @@ nav{
   display:flex;justify-content:center;gap:32px;flex-wrap:wrap;
 }
 
-
-
-
 /* ── Main Content ── */
 .content{max-width:520px;margin:0 auto;padding:0 24px 80px}
-
 
 /* ── Form Card ── */
 .card{
@@ -248,7 +244,6 @@ footer span{margin:0 8px;opacity:.4}
 .history-meta{font-size:11px;color:#999;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-use{font-size:11px;color:#888;flex-shrink:0}
 
-
 .err-detail{margin-top:10px;background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;text-align:left}
 .err-detail-title{font-size:12px;font-weight:600;color:#dc2626;margin-bottom:4px}
 .err-detail-log{font-size:11px;color:#7f1d1d;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;line-height:1.5}
@@ -269,7 +264,6 @@ footer span{margin:0 8px;opacity:.4}
     </svg>
   </a>
 </nav>
-
 
 <div class="content">
 
@@ -355,16 +349,11 @@ footer span{margin:0 8px;opacity:.4}
     </div>
   </div>
 
-    <!-- 打包历史 -->
     <div class="history-card" id="historyCard">
       <div class="history-title">
-        打包历史
-        <span class="history-clear" id="historyClear">清空</span>
       </div>
-      <div class="history-list" id="historyList"></div>
     </div>
   </div>
-
 
 </div>
 
@@ -645,20 +634,11 @@ iconInput.addEventListener('input', () => {
   iconTimer = setTimeout(() => triggerIconPreview(iconInput.value.trim()), 600);
 });
 
-/* ── 打包历史 ── */
-const HISTORY_KEY = 'apkbuilder_history';
 const historyCard = document.getElementById('historyCard');
-const historyList = document.getElementById('historyList');
-const historyClear = document.getElementById('historyClear');
 
-function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
-function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
-
-function renderHistory(){
   const h = getHistory();
   if(!h.length){ historyCard.classList.remove('show'); return; }
   historyCard.classList.add('show');
-  historyList.innerHTML = h.map((item,i) => `
     <div class="history-item" data-idx="${i}">
       <div class="history-icon">
         ${item.icon_url ? `<img src="${item.icon_url}" onerror="this.style.display='none'">` : ''}
@@ -671,7 +651,6 @@ function renderHistory(){
     </div>
   `).join('');
 
-  historyList.querySelectorAll('.history-item').forEach(el => {
     el.addEventListener('click', () => {
       const item = getHistory()[+el.dataset.idx];
       document.getElementById('f_url').value  = item.app_url;
@@ -686,19 +665,13 @@ function renderHistory(){
   });
 }
 
-historyClear.addEventListener('click', () => {
-  localStorage.removeItem(HISTORY_KEY);
-  renderHistory();
 });
 
 function addHistory(data){
   const h = getHistory().filter(x => x.package_name !== data.package_name);
   h.unshift(data);
   saveHistory(h);
-  renderHistory();
 }
-
-renderHistory();
 
 /* ── 构建成功时记录历史 ── */
 const _origStartPoll = startPoll;
