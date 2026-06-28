@@ -609,7 +609,6 @@ tr:hover td{background:var(--surface)}
   </div>
 </div>
 
-
 <!-- ════════════════ 快速部署 ════════════════ -->
 <div class="page" id="page-deploy">
   <h1>快速部署</h1>
@@ -881,7 +880,7 @@ base64 -i release.jks | tr -d '\n'</code></pre>
       <span class="api-desc">获取最近打包记录</span>
     </div>
     <div class="api-body">
-      <p>返回最近 20 条打包历史，数据来源为 GitHub Releases。</p>
+      <p>返回最近 20 条，数据来源为 GitHub Releases。</p>
       <h3>响应体（JSON）</h3>
       <pre><code>[
   {
@@ -933,7 +932,7 @@ base64 -i release.jks | tr -d '\n'</code></pre>
     <div class="faq-a"><p>可以，WebView 支持完整 Cookie，用户在 APP 内登录后状态会保留。但打包时填写的 URL 建议是登录后的首页或可公开访问的入口页。</p></div>
   </div>
   <div class="faq-item" onclick="toggleFaq(this)">
-    <div class="faq-q">打包历史在哪里存储？<span class="faq-arrow"></span></div>
+    <div class="faq-q">在哪里存储？<span class="faq-arrow"></span></div>
     <div class="faq-a"><p>历史记录保存在浏览器 LocalStorage，清除缓存或换设备后会丢失。APK 文件本身存储在 GitHub Releases，只要仓库存在就不会消失。</p></div>
   </div>
   <div class="faq-item" onclick="toggleFaq(this)">
