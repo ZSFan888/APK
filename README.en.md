@@ -88,3 +88,9 @@ See the Chinese documentation at `/Docs` and the English entry page at `/Docs/en
 - `/Docs` is the default Chinese documentation entry.
 - `/Docs/en/` is the English documentation entry.
 - App-internal UI is unchanged; this update only adds multilingual project documentation links.
+
+## Documentation Languages
+
+- Default Chinese docs: `/Docs`
+- English docs: `/Docs/en/`
+- App-internal UI is unchanged in this update; multilingual support currently applies only to repository documentation and the docs website
