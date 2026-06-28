@@ -1335,6 +1335,7 @@ function updateThemeIcon(dark){
 (function(){
   var overlay=document.getElementById('disclaimerOverlay');
   if(navigator.userAgent && navigator.userAgent.indexOf('PakrApp') !== -1) return;
+  try { if(localStorage.getItem('pakr_disc_accepted')==='1') return; } catch(e){}
   if(overlay) overlay.style.display='flex';
   var body = document.getElementById('discBody');
   var hint = document.getElementById('discScrollHint');
@@ -1380,6 +1381,7 @@ function tryAcceptDisclaimer(){
 }
 
 function acceptDisclaimer(){
+  try { localStorage.setItem('pakr_disc_accepted','1'); } catch(e){}
   var el=document.getElementById('disclaimerOverlay');
   if(el){ el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(function(){ el.style.display='none'; },300); }
 }
