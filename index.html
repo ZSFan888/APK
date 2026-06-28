@@ -1482,13 +1482,17 @@ document.querySelectorAll('[data-i18n-aria]').forEach(el => {
   const key = el.getAttribute('data-i18n-aria');
   if (t[key]) el.setAttribute('aria-label', t[key]);
 });
-  const zhBtn = document.getElementById('langZh');
-  const enBtn = document.getElementById('langEn');
-  if (zhBtn && enBtn) {
-    zhBtn.style.color = lang === 'zh' ? '#111' : '#555';
-    zhBtn.style.fontWeight = lang === 'zh' ? '700' : '600';
-    enBtn.style.color = lang === 'en' ? '#059669' : '#555';
-    enBtn.style.fontWeight = lang === 'en' ? '700' : '600';
+  const langToggleBtn = document.getElementById('langToggleBtn');
+  if (langToggleBtn) {
+    const nextLang = lang === 'zh' ? 'en' : 'zh';
+    langToggleBtn.textContent = nextLang === 'en' ? 'EN' : '中文';
+    langToggleBtn.title = lang === 'zh' ? 'Switch to English' : '切换到中文';
+    langToggleBtn.setAttribute('aria-label', langToggleBtn.title);
+    langToggleBtn.onclick = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', nextLang);
+      window.location.href = url.toString();
+    };
   }
 })();
 </script>
