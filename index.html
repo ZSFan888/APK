@@ -560,8 +560,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
 <div id="disclaimerOverlay">
   <div id="disclaimerBox">
     <div class="disc-head">
-      <h2>使用须知 &amp; 免责声明</h2>
-      <p class="disc-subtitle">请在使用前仔细阅读，继续使用即表示您同意以下全部条款</p>
+      <h2 data-i18n="discTitle">使用须知 &amp; 免责声明</h2>
+      <p class="disc-subtitle" data-i18n="discSubtitle">请在使用前仔细阅读，继续使用即表示您同意以下全部条款</p>
     </div>
     <div class="disc-body-wrap">
       <div class="disc-body" id="discBody">
@@ -610,8 +610,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
     <div class="disc-foot">
       <!-- disc-scroll-tip 已移除 -->
       <div class="disc-actions">
-        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意</button>
-        <button class="disc-accept unlocked" id="discAcceptBtn" onclick="tryAcceptDisclaimer()">同意并继续</button>
+        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'" data-i18n="discDecline">不同意</button>
+        <button class="disc-accept unlocked" id="discAcceptBtn" onclick="tryAcceptDisclaimer()" data-i18n="discAccept">同意并继续</button>
       </div>
     </div>
   </div>
@@ -630,10 +630,10 @@ footer{border-top-color:var(--border);color:var(--faint)}
     <button id="themeBtn" class="nav-tool" title="切换主题" onclick="toggleTheme()" type="button" aria-label="切换主题">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
-    <button id="historyBtn" class="nav-tool" title="打包历史" onclick="toggleHistoryPanel()" type="button" aria-label="打包历史">
+    <button id="historyBtn" class="nav-tool" title="打包历史" onclick="toggleHistoryPanel()" type="button" aria-label="打包历史" data-i18n-title="historyTitle" data-i18n-aria="historyTitle">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </button>
-    <a href="/Docs" target="_blank" class="nav-tool" title="文档" aria-label="文档">
+    <a href="/Docs" target="_blank" class="nav-tool" title="文档" aria-label="文档" data-i18n-title="docsText" data-i18n-aria="docsText">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     </a>
     <a href="https://github.com/ZhangShengFan/Pakr" target="_blank" class="nav-tool github" title="GitHub" aria-label="GitHub">
@@ -669,25 +669,25 @@ footer{border-top-color:var(--border);color:var(--faint)}
       </div>
       <form class="form" id="form" novalidate>
         <div class="field">
-          <label for="f_url">目标网址</label>
+          <label for="f_url" data-i18n="labelUrl">目标网址</label>
           <input type="url" id="f_url" placeholder="https://example.com" autocomplete="off" required>
 </div>
         <div class="field">
-          <label for="f_name">App 名称</label>
-          <input type="text" id="f_name" placeholder="我的应用" required>
+          <label for="f_name" data-i18n="labelName">App 名称</label>
+          <input type="text" id="f_name" placeholder="我的应用" data-i18n-placeholder="phName" required>
         </div>
         <div class="field">
-          <label for="f_pkg">包名</label>
+          <label for="f_pkg" data-i18n="labelPkg">包名</label>
           <input type="text" id="f_pkg" placeholder="com.example.myapp" required>
         </div>
         <div class="field">
-            <label for="f_ver">版本号</label>
+            <label for="f_ver" data-i18n="labelVer">版本号</label>
             <input type="text" id="f_ver" placeholder="1.0.0" value="1.0.0" required>
           </div>
           <div class="icon-field">
             <div class="field">
-              <label for="f_icon">图标 URL <span style="font-weight:400;color:#999;font-size:11px">（选填，留空使用默认 logo.jpg）</span></label>
-              <input type="url" id="f_icon" placeholder="PNG/JPG 图标地址（留空自动使用仓库 logo.jpg）">
+              <label for="f_icon"><span data-i18n="labelIcon">图标 URL</span> <span style="font-weight:400;color:#999;font-size:11px" data-i18n="labelIconHint">（选填，留空使用默认 logo.jpg）</span></label>
+              <input type="url" id="f_icon" placeholder="PNG/JPG 图标地址（留空自动使用仓库 logo.jpg）" data-i18n-placeholder="phIcon">
             </div>
             <div class="icon-preview" id="iconPreview">
               <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -697,8 +697,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
 
         <div class="toggle-row">
           <div>
-            <div class="toggle-label">禁止截图</div>
-            <div class="toggle-desc">开启后 App 内无法截图/录屏</div>
+            <div class="toggle-label" data-i18n="labelNoShot">禁止截图</div>
+            <div class="toggle-desc" data-i18n="labelNoShotDesc">开启后 App 内无法截图/录屏</div>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="f_no_screenshot">
@@ -708,7 +708,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
         </div>
         <button type="button" class="btn" id="submitBtn" onclick="handleBuildClick()">
           <svg class="btn-icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          开始打包
+          <span data-i18n="submitBtn">开始打包</span>
         </button>
       </form>
     </div>
@@ -718,8 +718,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
       <div class="status-header">
         <div class="status-dot" id="sDot"></div>
         <div>
-          <div class="status-title" id="sTitle">等待中</div>
-          <div class="status-sub" id="sSub">正在初始化构建任务</div>
+          <div class="status-title" id="sTitle" data-i18n="statusWaiting">等待中</div>
+          <div class="status-sub" id="sSub" data-i18n="statusInit">正在初始化构建任务</div>
         </div>
       </div>
       <div class="progress-wrap"><div class="progress-bar" id="progFill"></div></div>
@@ -1509,7 +1509,24 @@ const I18N = {
     heroDesc: '填写网址和应用信息，3~5 分钟自动生成可安装的 Android APK，无需本地环境，全程云端构建。',
     docsHref: '/Docs',
     docsLabel: '中文文档',
-    historyTitle: '打包历史'
+    historyTitle: '打包历史',
+    discTitle: '使用须知 & 免责声明',
+    discSubtitle: '请在使用前仔细阅读，继续使用即表示您同意以下全部条款',
+    discDecline: '不同意',
+    discAccept: '同意并继续',
+    labelUrl: '目标网址',
+    labelName: 'App 名称',
+    labelPkg: '包名',
+    labelVer: '版本号',
+    labelIcon: '图标 URL',
+    labelIconHint: '（选填，留空使用默认 logo.jpg）',
+    labelNoShot: '禁止截图',
+    labelNoShotDesc: '开启后 App 内无法截图/录屏',
+    phName: '我的应用',
+    phIcon: 'PNG/JPG 图标地址（留空自动使用仓库 logo.jpg）',
+    submitBtn: '开始打包',
+    statusWaiting: '等待中',
+    statusInit: '正在初始化构建任务'
   },
   en: {
     pageTitle: 'Pakr By ZSFan',
@@ -1519,7 +1536,24 @@ const I18N = {
     heroDesc: 'Enter a target website and app metadata, then generate an installable Android APK in 3–5 minutes with a fully cloud-based build pipeline.',
     docsHref: '/Docs/en/',
     docsLabel: 'English Docs',
-    historyTitle: 'Build History'
+    historyTitle: 'Build History',
+    discTitle: 'Usage Notice & Disclaimer',
+    discSubtitle: 'Please read carefully before use. Continuing means you agree to all terms below.',
+    discDecline: 'Decline',
+    discAccept: 'Agree and Continue',
+    labelUrl: 'Target URL',
+    labelName: 'App Name',
+    labelPkg: 'Package Name',
+    labelVer: 'Version',
+    labelIcon: 'Icon URL',
+    labelIconHint: '(Optional, leave empty to use the default logo.jpg)',
+    labelNoShot: 'Disable Screenshots',
+    labelNoShotDesc: 'When enabled, screenshots and screen recording are blocked inside the app.',
+    phName: 'My App',
+    phIcon: 'PNG/JPG icon URL (leave empty to use repo logo.jpg)',
+    submitBtn: 'Build APK',
+    statusWaiting: 'Waiting',
+    statusInit: 'Initializing build task'
   }
 };
 (function(){
@@ -1544,6 +1578,23 @@ const I18N = {
   if (heroTitle) heroTitle.innerHTML = t.heroTitle;
   const heroDesc = document.querySelector('.hero p');
   if (heroDesc) heroDesc.textContent = t.heroDesc;
+
+document.querySelectorAll('[data-i18n]').forEach(el => {
+  const key = el.getAttribute('data-i18n');
+  if (t[key]) el.textContent = t[key];
+});
+document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+  const key = el.getAttribute('data-i18n-placeholder');
+  if (t[key]) el.setAttribute('placeholder', t[key]);
+});
+document.querySelectorAll('[data-i18n-title]').forEach(el => {
+  const key = el.getAttribute('data-i18n-title');
+  if (t[key]) el.setAttribute('title', t[key]);
+});
+document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+  const key = el.getAttribute('data-i18n-aria');
+  if (t[key]) el.setAttribute('aria-label', t[key]);
+});
   const zhBtn = document.getElementById('langZh');
   const enBtn = document.getElementById('langEn');
   if (zhBtn && enBtn) {
