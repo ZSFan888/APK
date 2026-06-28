@@ -626,6 +626,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
     Pakr
   </a>
   <div class="nav-actions">
+  <div class="lang-switch" style="display:flex;align-items:center;gap:6px;padding:0 10px;height:38px;border:1px solid #efefef;border-radius:12px;background:#f9f9f9;font-size:13px;color:#555"><a href="?lang=zh" id="langZh" style="text-decoration:none;color:#111;font-weight:600">中</a><span style="color:#bbb">/</span><a href="?lang=en" id="langEn" style="text-decoration:none;color:#059669;font-weight:600">EN</a></div>
     <button id="themeBtn" class="nav-tool" title="切换主题" onclick="toggleTheme()" type="button" aria-label="切换主题">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
@@ -1498,6 +1499,61 @@ function acceptDisclaimer(){
 </script>
 
 <div id="discToast">请先阅读全部内容</div>
+<script>
+const I18N = {
+  zh: {
+    pageTitle: 'Pakr By ZSFan',
+    docsText: '文档',
+    heroBadge: 'Cloudflare Pages + GitHub Actions',
+    heroTitle: '网页一键打包 APK',
+    heroDesc: '填写网址和应用信息，3~5 分钟自动生成可安装的 Android APK，无需本地环境，全程云端构建。',
+    docsHref: '/Docs',
+    docsLabel: '中文文档',
+    historyTitle: '打包历史'
+  },
+  en: {
+    pageTitle: 'Pakr By ZSFan',
+    docsText: 'Docs',
+    heroBadge: 'Cloudflare Pages + GitHub Actions',
+    heroTitle: 'One-click website to APK packaging',
+    heroDesc: 'Enter a target website and app metadata, then generate an installable Android APK in 3–5 minutes with a fully cloud-based build pipeline.',
+    docsHref: '/Docs/en/',
+    docsLabel: 'English Docs',
+    historyTitle: 'Build History'
+  }
+};
+(function(){
+  const params = new URLSearchParams(location.search);
+  let lang = params.get('lang');
+  if (!lang) {
+    const nav = (navigator.language || '').toLowerCase();
+    lang = nav.startsWith('zh') ? 'zh' : 'en';
+  }
+  if (!I18N[lang]) lang = 'zh';
+  const t = I18N[lang];
+  document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.title = t.pageTitle;
+  const docsBtn = Array.from(document.querySelectorAll('a')).find(a => a.textContent.trim() === '文档' || a.textContent.trim() === 'Docs');
+  if (docsBtn) { docsBtn.textContent = t.docsText; docsBtn.href = t.docsHref; }
+  const badge = document.querySelector('.hero-tag');
+  if (badge) {
+    const textNode = Array.from(badge.childNodes).find(n => n.nodeType === 3);
+    if (textNode) textNode.textContent = ' ' + t.heroBadge;
+  }
+  const heroTitle = document.querySelector('.hero h1');
+  if (heroTitle) heroTitle.innerHTML = t.heroTitle;
+  const heroDesc = document.querySelector('.hero p');
+  if (heroDesc) heroDesc.textContent = t.heroDesc;
+  const zhBtn = document.getElementById('langZh');
+  const enBtn = document.getElementById('langEn');
+  if (zhBtn && enBtn) {
+    zhBtn.style.color = lang === 'zh' ? '#111' : '#555';
+    zhBtn.style.fontWeight = lang === 'zh' ? '700' : '600';
+    enBtn.style.color = lang === 'en' ? '#059669' : '#555';
+    enBtn.style.fontWeight = lang === 'en' ? '700' : '600';
+  }
+})();
+</script>
 </body>
 </html>
 
