@@ -264,8 +264,6 @@ footer span{margin:0 8px;opacity:.4}
 
 /* ── History 浮动面板 ── */
 .history-nav-btn{background:none;border:none;cursor:pointer;color:inherit;padding:0;display:flex;align-items:center}
-#historyOverlay{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.15);backdrop-filter:blur(2px)}
-#historyPanel{
   position:fixed;top:0;right:0;bottom:0;width:320px;max-width:92vw;
   background:#fff;z-index:1000;box-shadow:-4px 0 32px rgba(0,0,0,0.12);
   display:flex;flex-direction:column;
@@ -273,16 +271,12 @@ footer span{margin:0 8px;opacity:.4}
   transform:translateX(100%);transition:transform .28s cubic-bezier(0.32,0,0.15,1);
   overflow:hidden;
 }
-#historyPanel.open{transform:translateX(0)}
-#historyOverlay.open{display:block}
 .history-panel-head{
   display:flex;align-items:center;justify-content:space-between;
   padding:16px 18px 14px;border-bottom:1px solid #f0f0f0;
   font-size:13px;font-weight:700;color:#111;flex-shrink:0;
 }
-#historyPanel .history-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
 /* ── History Card ── */
-.history-card{display:none}
 
 .history-title{
   font-size:12px;font-weight:600;color:#888;
@@ -386,7 +380,6 @@ footer span{margin:0 8px;opacity:.4}
   .status-title{color:#e8e8e8}
   
   pre{background:#111;color:#ccc}
-  #historyPanel{background:#1a1a1a}.history-panel-head{border-color:#2a2a2a;color:#e8e8e8}
   .history-name{color:#e8e8e8}
   .history-item{background:#222;border-color:#2a2a2a}
   .history-item:hover{background:#2a2a2a}
@@ -434,7 +427,6 @@ footer span{margin:0 8px;opacity:.4}
   --history-bg:#161b22;--history-border:#21262d;
 }
 html{ color-scheme: light dark; }
-body,nav,.card,input,#historyPanel,.history-item,
 .steps-card,.status-box,.dl-card,.perm-item{
   transition:background-color .2s,border-color .2s,color .2s;
 }
@@ -459,7 +451,6 @@ input::placeholder{color:var(--faint)}
 .hero h1{color:var(--text)}
 .hero p{color:var(--muted)}
 .nav-badge{color:var(--muted);background:var(--surface);border-color:var(--border2)}
-#historyPanel{background:var(--history-bg);border-color:var(--border)}
 .history-panel-head{border-bottom-color:var(--border2);color:var(--text)}
 .history-item{border-bottom-color:var(--border2)}
 .history-item:hover{background:var(--surface)}
@@ -624,22 +615,6 @@ footer{border-top-color:var(--border);color:var(--faint)}
     </a>
   </div>
 </nav>
-
-<!-- 历史记录浮动面板 -->
-<div id="historyOverlay" onclick="void(0)"></div>
-<div id="historyPanel">
-  <div class="history-panel-head">
-    <span>打包历史</span>
-    <div style="display:flex;align-items:center;gap:12px">
-      <span class="history-clear" id="historyClear">清空</span>
-      <button onclick="void(0)" style="background:none;border:none;cursor:pointer;color:#999;padding:0;display:flex">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-  </div>
-  <div class="history-list" id="historyList"></div>
-  <div id="historyEmpty" style="display:none;text-align:center;padding:32px 0;color:#bbb;font-size:13px">暂无打包记录</div>
-</div>
 
 <div class="content">
 
@@ -1277,18 +1252,10 @@ window.addEventListener('pageshow', () => {
 });
 triggerIconPreview(iconInput.value.trim());
 
-/* ── 打包历史 ── */
-const HISTORY_KEY = 'apkbuilder_history';
-
 const historyCard = null; // moved to panel
-const historyList = document.getElementById('historyList');
-const historyClear = document.getElementById('historyClear');
 
-historyClear.addEventListener('click', () => {
-  localStorage.removeItem(HISTORY_KEY);
   });
 
-function histCopy(btn, url){
   const ok = () => {
     btn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
     setTimeout(()=>{ btn.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>'; }, 1500);
