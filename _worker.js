@@ -10,7 +10,6 @@ export default {
       else if (url.pathname === '/logs'     && request.method === 'GET')  res = await handleLogs(request, env);
       else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
       else if (url.pathname === '/cancel'   && request.method === 'POST') res = await handleCancel(request, env);
-      else if (url.pathname === '/debug-env' && request.method === 'GET') res = await handleDebugEnv(request, env);
       else return env.ASSETS.fetch(request);
       return cors(res, env);
     } catch (e) {
@@ -25,6 +24,20 @@ export default {
   }
 };
 
+
+function isSafeUrl(u) {
+  try {
+    const parsed = new URL(u);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    const host = parsed.hostname.toLowerCase();
+    if (host === 'localhost' || host === '0.0.0.0') return false;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
+    if (host === '::1' || host.startsWith('fc') || host.startsWith('fd')) return false;
+    return true;
+  } catch { return false; }
+}
+
 async function handleBuild(request, env) {
   const { app_url, app_name, package_name, version_name, icon_url } = await request.json();
   const buildId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -33,6 +46,10 @@ async function handleBuild(request, env) {
   const pkgRe = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){1,}$/;
   if (!pkgRe.test(package_name))
     return json({ error: 'Invalid package name' }, 400);
+  if (!isSafeUrl(app_url))
+    return json({ error: 'Invalid or unsafe app_url' }, 400);
+  if (icon_url && !isSafeUrl(icon_url))
+    return json({ error: 'Invalid or unsafe icon_url' }, 400);
   // 校验包名各段不能是 Java 关键字
   const JAVA_KEYWORDS = new Set(["abstract","assert","boolean","break","byte","case","catch","char","class","const","continue","default","do","double","else","enum","extends","final","finally","float","for","goto","if","implements","import","instanceof","int","interface","long","native","new","package","private","protected","public","return","short","static","strictfp","super","switch","synchronized","this","throw","throws","transient","try","void","volatile","while"]);
   const invalidSeg = package_name.split('.').find(seg => JAVA_KEYWORDS.has(seg));
@@ -324,16 +341,3 @@ function cors(res, env) {
 // force-redeploy: pages-advanced-mode-fix-20260502-1137
 
 
-async function handleDebugEnv(request, env) {
-  const mask = (v) => !v ? null : (v.length <= 10 ? '*'.repeat(v.length) : `${v.slice(0,4)}***${v.slice(-4)}`);
-  return json({
-    ok: true,
-    env: {
-      GITHUB_OWNER: env.GITHUB_OWNER || null,
-      GITHUB_REPO: env.GITHUB_REPO || null,
-      GITHUB_TOKEN_present: !!env.GITHUB_TOKEN,
-      GITHUB_TOKEN_masked: mask(env.GITHUB_TOKEN || ''),
-      GITHUB_TOKEN_length: env.GITHUB_TOKEN ? env.GITHUB_TOKEN.length : 0,
-    }
-  });
-}
