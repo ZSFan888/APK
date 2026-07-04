@@ -36,7 +36,7 @@ nav{
   transition:background .15s,color .15s,border-color .15s,transform .12s;
   -webkit-tap-highlight-color:transparent;
 }
-.nav-tool:hover{background:#f1f1f1;color:var(--text);border-color:#e5e5e5}
+.nav-tool:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent)}
 .nav-tool:active{transform:scale(0.97)}
 .nav-tool svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .nav-tool.github svg{fill:currentColor;stroke:none}
@@ -105,13 +105,13 @@ input.err{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.08)}
 
 .btn{
   width:100%;height:46px;margin-top:4px;
-  background:var(--text);color:var(--bg);border:none;border-radius:8px;
+  background:var(--accent);color:var(--accent-text);border:none;border-radius:8px;
   font-size:14px;font-weight:600;font-family:inherit;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
   transition:background .15s,transform .12s,box-shadow .15s;
   position:relative;overflow:hidden;
 }
-.btn:hover:not(:disabled){background:#222;box-shadow:0 4px 16px rgba(0,0,0,0.20)}
+.btn:hover:not(:disabled){background:var(--accent-hover);box-shadow:0 4px 16px rgba(37,99,235,0.25)}
 .btn:active:not(:disabled){transform:scale(0.98)}
 .btn:disabled{opacity:0.5;cursor:not-allowed}
 .btn-icon{width:16px;height:16px;fill:none;stroke:var(--bg);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
@@ -361,13 +361,15 @@ footer span{margin:0 8px;opacity:.4}
 
 /* ── Dark Mode ── */
 :root{
-  --bg:var(--bg);--surface:var(--surface);--surface2:var(--surface2);
-  --border:var(--border);--border2:var(--border2);
-  --text:var(--text);--muted:var(--muted);--faint:var(--faint);
+  --bg:#ffffff;--surface:#f9f9f9;--surface2:#f5f5f5;
+  --border:#e8e8e8;--border2:#efefef;
+  --text:#111111;--muted:#666666;--faint:#aaaaaa;
   --input-bg:#fafafa;--input-border:#e0e0e0;
   --card-shadow:0 4px 24px rgba(0,0,0,0.06);
   --nav-bg:rgba(255,255,255,0.85);
-  --history-bg:var(--bg);--history-border:var(--border);
+  --history-bg:#ffffff;--history-border:#e8e8e8;
+  --accent:#2563eb;--accent-hover:#1d4ed8;--accent-active:#1e40af;--accent-text:#ffffff;--accent-soft:#eff4ff;
+  --danger:#dc2626;--danger-hover:#b91c1c;
 }
 [data-theme="dark"]{
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
@@ -377,6 +379,8 @@ footer span{margin:0 8px;opacity:.4}
   --card-shadow:0 4px 24px rgba(0,0,0,0.35);
   --nav-bg:rgba(13,17,23,0.85);
   --history-bg:#161b22;--history-border:#21262d;
+  --accent:#3b82f6;--accent-hover:#60a5fa;--accent-active:#2563eb;--accent-text:#0d1117;--accent-soft:#152238;
+  --danger:#f87171;--danger-hover:#fca5a5;
 }
 html{ color-scheme: light dark; }
 .steps-card,.status-box,.dl-card,.perm-item{
@@ -422,8 +426,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
   -webkit-box-shadow:0 0 0 100px #1c2128 inset!important;
   -webkit-text-fill-color:#e6edf3!important;
 }
-[data-theme="dark"] .btn{background:#e6edf3;color:#0d1117}
-[data-theme="dark"] .btn:hover:not(:disabled){background:var(--bg)}
+[data-theme="dark"] .btn{background:var(--accent);color:var(--accent-text)}
+[data-theme="dark"] .btn:hover:not(:disabled){background:var(--accent-hover)}
 [data-theme="dark"] .nav-logo-icon{background:#e6edf3}
 [data-theme="dark"] .nav-logo-icon svg{stroke:#0d1117}
 [data-theme="dark"] .step-num{background:#e6edf3;color:#0d1117}
@@ -472,9 +476,9 @@ footer{border-top-color:var(--border);color:var(--faint)}
 #disclaimerBox .disc-decline{flex:1;padding:11px;border:1.5px solid #ddd;border-radius:10px;background:var(--bg);color:var(--muted);font-size:14px;cursor:pointer;font-weight:500;transition:background .15s}
 #disclaimerBox .disc-decline:hover{background:var(--surface2)}
 #disclaimerBox .disc-accept{flex:2;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;transition:background .15s,opacity .15s}
-#disclaimerBox .disc-accept:not(.unlocked){background:#ccc;color:var(--bg);cursor:not-allowed;opacity:.7}
-#disclaimerBox .disc-accept.unlocked{background:var(--text);color:var(--bg)}
-#disclaimerBox .disc-accept.unlocked:hover{background:#333}
+#disclaimerBox .disc-accept:not(.unlocked){background:var(--border);color:var(--muted);cursor:not-allowed;opacity:.7}
+#disclaimerBox .disc-accept.unlocked{background:var(--accent);color:var(--accent-text)}
+#disclaimerBox .disc-accept.unlocked:hover{background:var(--accent-hover)}
 .disc-ban{display:inline-block;width:13px;height:13px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23ef4444'/%3E%3Cpath stroke='%23fff' stroke-width='2.5' stroke-linecap='round' d='M8 8l8 8M16 8l-8 8'/%3E%3C/svg%3E") center/contain no-repeat;vertical-align:middle;margin-right:4px;flex-shrink:0}
 
 </style>
