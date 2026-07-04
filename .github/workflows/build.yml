@@ -45,23 +45,54 @@ jobs:
           restore-keys: gradle-${{ runner.os }}-
 
       - name: Inject parameters
+        env:
+          IN_APP_URL: ${{ github.event.inputs.app_url }}
+          IN_APP_NAME: ${{ github.event.inputs.app_name }}
+          IN_PACKAGE_NAME: ${{ github.event.inputs.package_name }}
+          IN_VERSION_NAME: ${{ github.event.inputs.version_name }}
         run: |
-          sed -i 's|{{APP_URL}}|${{ github.event.inputs.app_url }}|g' app/src/main/java/com/webviewapp/MainActivity.kt
-          PKG="${{ github.event.inputs.package_name }}"
-          sed -i "s|{{APP_PACKAGE}}|${PKG}|g" app/src/main/AndroidManifest.xml app/build.gradle
-          NAME="${{ github.event.inputs.app_name }}"
-          sed -i "s|{{APP_NAME}}|${NAME}|g" app/src/main/res/values/strings.xml app/src/main/AndroidManifest.xml
-          VER="${{ github.event.inputs.version_name }}"
-          VC=$(echo "$VER" | awk -F. '{ printf "%d%02d%02d", $1, $2, $3 }')
-          sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
-          sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
-          PKG_PATH=$(echo $PKG | sed 's/\.//g; s/./&\//g' | sed 's/\(.*\)\//\1/')
-          PKG_PATH=$(echo $PKG | tr '.' '/')
-          echo "PKG_PATH is: $PKG_PATH"
-          mkdir -p app/src/main/java/$PKG_PATH
-          sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
-          mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
-          sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
+          python3 - <<'PY'
+import os, re
+
+def replace_in_file(path, mapping):
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    for old, new in mapping.items():
+        content = content.replace(old, new)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+app_url = os.environ['IN_APP_URL']
+app_name = os.environ['IN_APP_NAME']
+pkg = os.environ['IN_PACKAGE_NAME']
+ver = os.environ['IN_VERSION_NAME']
+
+parts = ver.split('.')
+parts = (parts + ['0','0','0'])[:3]
+try:
+    vc = int(parts[0]) * 10000 + int(parts[1]) * 100 + int(parts[2])
+except ValueError:
+    vc = 1
+
+replace_in_file('app/src/main/java/com/webviewapp/MainActivity.kt', {'{{APP_URL}}': app_url})
+replace_in_file('app/src/main/AndroidManifest.xml', {'{{APP_PACKAGE}}': pkg, '{{APP_NAME}}': app_name})
+replace_in_file('app/build.gradle', {'{{APP_PACKAGE}}': pkg, '{{VERSION_NAME}}': ver, '{{VERSION_CODE}}': str(vc)})
+replace_in_file('app/src/main/res/values/strings.xml', {'{{APP_NAME}}': app_name})
+
+pkg_path = pkg.replace('.', '/')
+os.makedirs(f'app/src/main/java/{pkg_path}', exist_ok=True)
+
+kt_dir = 'app/src/main/java/com/webviewapp'
+for fname in os.listdir(kt_dir):
+    if fname.endswith('.kt'):
+        fpath = os.path.join(kt_dir, fname)
+        replace_in_file(fpath, {'package com.webviewapp': f'package {pkg}'})
+        os.rename(fpath, os.path.join(f'app/src/main/java/{pkg_path}', fname))
+
+replace_in_file('app/src/main/res/layout/activity_main.xml', {'com.webviewapp': pkg})
+
+print(f"PKG_PATH is: {pkg_path}")
+PY
 
       - name: Ensure fallback launcher resources
         run: |
@@ -90,6 +121,9 @@ jobs:
           ./gradlew assembleRelease --no-daemon
 
       - name: Sign APK
+        env:
+          IN_APP_NAME: ${{ github.event.inputs.app_name }}
+          IN_VERSION_NAME: ${{ github.event.inputs.version_name }}
         run: |
           KS_B64="${{ secrets.KEYSTORE_BASE64 }}"
           if [ -n "$KS_B64" ]; then
@@ -104,8 +138,8 @@ jobs:
             KEY_PASS="android"
           fi
           BUILD_TOOLS=$(ls $ANDROID_HOME/build-tools/ | sort -V | tail -1)
-          SAFE=$(echo "${{ github.event.inputs.app_name }}" | tr ' ' '_')
-          VER="${{ github.event.inputs.version_name }}"
+          SAFE=$(printf '%s' "$IN_APP_NAME" | tr -c 'A-Za-z0-9_-' '_')
+          VER="$IN_VERSION_NAME"
           mkdir -p /tmp/signed
           echo "=== Searching for split APK files ==="
           find app/build -name '*.apk' 2>/dev/null || echo "No APK found in app/build"
