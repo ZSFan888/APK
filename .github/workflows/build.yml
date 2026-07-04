@@ -52,47 +52,46 @@ jobs:
           IN_VERSION_NAME: ${{ github.event.inputs.version_name }}
         run: |
           python3 - <<'PY'
-import os, re
+          import os
 
-def replace_in_file(path, mapping):
-    with open(path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    for old, new in mapping.items():
-        content = content.replace(old, new)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
+          def replace_in_file(path, mapping):
+              with open(path, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              for old, new in mapping.items():
+                  content = content.replace(old, new)
+              with open(path, 'w', encoding='utf-8') as f:
+                  f.write(content)
 
-app_url = os.environ['IN_APP_URL']
-app_name = os.environ['IN_APP_NAME']
-pkg = os.environ['IN_PACKAGE_NAME']
-ver = os.environ['IN_VERSION_NAME']
+          app_url = os.environ['IN_APP_URL']
+          app_name = os.environ['IN_APP_NAME']
+          pkg = os.environ['IN_PACKAGE_NAME']
+          ver = os.environ['IN_VERSION_NAME']
 
-parts = ver.split('.')
-parts = (parts + ['0','0','0'])[:3]
-try:
-    vc = int(parts[0]) * 10000 + int(parts[1]) * 100 + int(parts[2])
-except ValueError:
-    vc = 1
+          parts = (ver.split('.') + ['0', '0', '0'])[:3]
+          try:
+              vc = int(parts[0]) * 10000 + int(parts[1]) * 100 + int(parts[2])
+          except ValueError:
+              vc = 1
 
-replace_in_file('app/src/main/java/com/webviewapp/MainActivity.kt', {'{{APP_URL}}': app_url})
-replace_in_file('app/src/main/AndroidManifest.xml', {'{{APP_PACKAGE}}': pkg, '{{APP_NAME}}': app_name})
-replace_in_file('app/build.gradle', {'{{APP_PACKAGE}}': pkg, '{{VERSION_NAME}}': ver, '{{VERSION_CODE}}': str(vc)})
-replace_in_file('app/src/main/res/values/strings.xml', {'{{APP_NAME}}': app_name})
+          replace_in_file('app/src/main/java/com/webviewapp/MainActivity.kt', {'{{APP_URL}}': app_url})
+          replace_in_file('app/src/main/AndroidManifest.xml', {'{{APP_PACKAGE}}': pkg, '{{APP_NAME}}': app_name})
+          replace_in_file('app/build.gradle', {'{{APP_PACKAGE}}': pkg, '{{VERSION_NAME}}': ver, '{{VERSION_CODE}}': str(vc)})
+          replace_in_file('app/src/main/res/values/strings.xml', {'{{APP_NAME}}': app_name})
 
-pkg_path = pkg.replace('.', '/')
-os.makedirs(f'app/src/main/java/{pkg_path}', exist_ok=True)
+          pkg_path = pkg.replace('.', '/')
+          os.makedirs(f'app/src/main/java/{pkg_path}', exist_ok=True)
 
-kt_dir = 'app/src/main/java/com/webviewapp'
-for fname in os.listdir(kt_dir):
-    if fname.endswith('.kt'):
-        fpath = os.path.join(kt_dir, fname)
-        replace_in_file(fpath, {'package com.webviewapp': f'package {pkg}'})
-        os.rename(fpath, os.path.join(f'app/src/main/java/{pkg_path}', fname))
+          kt_dir = 'app/src/main/java/com/webviewapp'
+          for fname in os.listdir(kt_dir):
+              if fname.endswith('.kt'):
+                  fpath = os.path.join(kt_dir, fname)
+                  replace_in_file(fpath, {'package com.webviewapp': f'package {pkg}'})
+                  os.rename(fpath, os.path.join(f'app/src/main/java/{pkg_path}', fname))
 
-replace_in_file('app/src/main/res/layout/activity_main.xml', {'com.webviewapp': pkg})
+          replace_in_file('app/src/main/res/layout/activity_main.xml', {'com.webviewapp': pkg})
 
-print(f"PKG_PATH is: {pkg_path}")
-PY
+          print(f"PKG_PATH is: {pkg_path}")
+          PY
 
       - name: Ensure fallback launcher resources
         run: |
